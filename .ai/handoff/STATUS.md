@@ -1,6 +1,6 @@
 # aahp-orchestrator: Current State of the Nation
 
-> Last updated: 2026-02-27 by Copilot
+> Last updated: 2026-02-27 by Claude Code
 > Version: 0.2.0
 >
 > **Rule:** This file is rewritten (not appended) at the end of every session.
@@ -12,8 +12,8 @@
 
 | Check | Result | Notes |
 |-------|--------|-------|
-| `npm run compile` | assumed | TypeScript to `out/` |
-| `npm run lint` | assumed | ESLint TypeScript rules |
+| `npm run compile` | verified | TypeScript to `out/`, 0 errors |
+| `npm run lint` | verified | ESLint passes (0 errors, 53 warnings) |
 | `vsce package` | verified | `aahp-orchestrator-0.2.0.vsix` exists |
 | Extension activates | assumed | `onStartupFinished` trigger |
 
@@ -42,7 +42,7 @@
 |-----------|-------|-------|
 | VS Code Marketplace | not published | v0.2.0 packaged as .vsix |
 | GitHub Releases | not tagged | Needs `git tag v0.2.0` + release |
-| CI pipeline | missing | No `.github/workflows/` yet |
+| CI pipeline | added | `.github/workflows/ci.yml` - compile + lint on push/PR |
 
 ---
 
@@ -50,7 +50,7 @@
 
 | Gap | Severity | Description |
 |-----|----------|-------------|
-| CI pipeline | HIGH | No GitHub Actions workflow yet |
+| CI pipeline | DONE | GitHub Actions workflow added (.github/workflows/ci.yml) |
 | Automated tests | HIGH | No test suite visible |
 | VS Code Marketplace publish | MEDIUM | .vsix packaged but not published |
 | CHANGELOG.md | LOW | No changelog tracking versions |
@@ -72,4 +72,5 @@
 
 - **(Verified)**: .vsix files exist, package.json structure correct
 - **(Assumed)**: all src/ components - derived from file names and package.json, not directly tested
-- **(Unknown)**: CI, automated tests, marketplace publish status
+- **(Verified)**: CI pipeline runs compile + lint
+- **(Unknown)**: automated tests, marketplace publish status

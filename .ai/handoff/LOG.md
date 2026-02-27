@@ -6,6 +6,34 @@
 
 ---
 
+## 2026-02-27 Claude Code: Add GitHub Actions CI Pipeline (T-001)
+
+**Agent:** Claude Code (claude-opus-4-6)
+**Phase:** 1 (Bootstrap)
+**Branch:** main
+**Task:** T-001
+
+### What was done
+
+- Created `.github/workflows/ci.yml` with push + pull_request triggers on main
+- Steps: checkout v4, setup-node v4 (Node 20 with npm cache), npm ci, compile, lint
+- Created `.eslintrc.json` (was missing - lint command failed without it)
+- Relaxed `no-explicit-any` and `no-unused-vars` to warnings to match existing codebase
+- Verified `npm run compile` passes (0 errors)
+- Verified `npm run lint` passes (0 errors, 53 warnings)
+- Updated MANIFEST.json: T-001 marked done, quick_context updated
+- Updated STATUS.md: build health verified, CI pipeline added
+
+### Decisions made
+
+- Did NOT run `vsce package` in CI (per NEXT_ACTIONS.md - requires auth)
+- Set ESLint rules for `no-explicit-any` and `no-unused-vars` to warn (not error)
+  to avoid blocking CI on existing tech debt - can be tightened in T-002
+- Used `actions/setup-node@v4` with `cache: npm` for faster CI runs
+- Restricted permissions to `contents: read` for security
+
+---
+
 ## 2026-02-27 Copilot: Bootstrap AAHP Protocol Structure
 
 **Agent:** GitHub Copilot (claude-sonnet-4.6)

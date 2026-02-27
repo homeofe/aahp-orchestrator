@@ -2,12 +2,12 @@
   "aahp_version": "3.0",
   "project": "aahp-orchestrator",
   "last_session": {
-    "agent": "github-copilot",
-    "session_id": "bootstrap-protocol-2026-02-27",
-    "timestamp": "2026-02-27T14:09:01.402Z",
-    "commit": "(pending - not yet committed)",
+    "agent": "claude-code",
+    "session_id": "t001-ci-pipeline-2026-02-27",
+    "timestamp": "2026-02-27T15:00:00.000Z",
+    "commit": "(see git log)",
     "phase": "bootstrap",
-    "duration_minutes": 5
+    "duration_minutes": 10
   },
   "files": {
     "STATUS.md": {
@@ -53,7 +53,7 @@
       "summary": "5-phase AAHP pipeline. VS Code extension specific: webview CSP, try/catch, vsce package notes."
     }
   },
-  "quick_context": "aahp-orchestrator v0.2.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Packaged as .vsix but not published to Marketplace. No CI, no automated tests. Next: T-001 CI pipeline, then T-002 tests, then T-003 Marketplace publish.",
+  "quick_context": "aahp-orchestrator v0.2.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Packaged as .vsix but not published to Marketplace. CI pipeline added (compile + lint on push/PR). No automated tests yet. Next: T-002 tests, then T-003 Marketplace publish.",
   "token_budget": {
     "manifest_only": 80,
     "manifest_plus_core": 1200,
@@ -63,10 +63,11 @@
   "tasks": {
     "T-001": {
       "title": "Add GitHub Actions CI pipeline",
-      "status": "ready",
+      "status": "done",
       "priority": "high",
       "depends_on": [],
-      "created": "2026-02-27T14:09:01.402Z"
+      "created": "2026-02-27T14:09:01.402Z",
+      "completed": "2026-02-27T15:00:00.000Z"
     },
     "T-002": {
       "title": "Add automated tests",

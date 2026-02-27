@@ -6,32 +6,6 @@
 
 ---
 
-## T-001: Add GitHub Actions CI pipeline
-
-**Goal:** Compile and lint on every push/PR to catch regressions early.
-
-**Context:**
-- No `.github/workflows/` directory exists yet
-- `aahp-runner` has a working CI template at `.github/workflows/ci.yml` - use it as reference
-- Build command: `npm run compile` | Lint: `npm run lint`
-- Node version: 20 (matches `@types/node` ^20)
-
-**What to do:**
-1. Create `.github/workflows/ci.yml` with `push` + `pull_request` triggers
-2. Steps: `actions/checkout@v4`, `actions/setup-node@v4` (node 20), `npm ci`, `npm run compile`, `npm run lint`
-3. Do NOT run `vsce package` in CI (requires auth)
-4. Commit: `ci: add GitHub Actions build and lint pipeline [AAHP-auto]`
-
-**Files:**
-- `.github/workflows/ci.yml`: create new
-
-**Definition of done:**
-- [ ] Workflow file created and valid YAML
-- [ ] `npm run compile` passes locally
-- [ ] Committed and pushed
-
----
-
 ## T-002: Add automated tests
 
 **Goal:** Cover core logic (aahp-reader, context-injector, manifest parsing) with unit tests.
@@ -88,6 +62,7 @@
 
 | Item | Resolution |
 |------|-----------|
+| T-001: CI pipeline | `.github/workflows/ci.yml` added - compile + lint on push/PR [2026-02-27] |
 | AAHP protocol structure | Created .ai/handoff/ with all 9 protocol files [2026-02-27] |
 
 ---
@@ -104,3 +79,5 @@
 | Package config | `package.json` |
 | Build config | `tsconfig.json` |
 | Packaged .vsix | `aahp-orchestrator-0.2.0.vsix` |
+| CI workflow | `.github/workflows/ci.yml` |
+| ESLint config | `.eslintrc.json` |
