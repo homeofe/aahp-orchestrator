@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "aahp-orchestrator",
   "displayName": "AAHP Orchestrator",
   "description": "Orchestrate GitHub Copilot and Claude Code with AAHP v3 context - zero questions, full context.",
