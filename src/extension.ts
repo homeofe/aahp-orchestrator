@@ -96,10 +96,14 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(d)
   }
 
+  // ── Session Monitor ─────────────────────────────────────────────────────────
+  const monitor = new SessionMonitor(context)
+  monitor.clearStaleSessions()
+
   // ── Commands ────────────────────────────────────────────────────────────────
   for (const d of registerCommands(context, getCtx, refreshAll, (runs: AgentRun[]) => {
     dashboardProvider.updateAgentRuns(runs)
-  })) {
+  }, monitor)) {
     context.subscriptions.push(d)
   }
 

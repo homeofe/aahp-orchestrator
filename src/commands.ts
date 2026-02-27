@@ -8,13 +8,15 @@ import {
   getWorkspaceRoot,
 } from './aahp-reader'
 import { scanAllRepos, spawnAllAgents, getDevRoot, AgentRun } from './agent-spawner'
+import { SessionMonitor } from './session-monitor'
 const PHASES = ['research', 'architecture', 'implementation', 'review', 'fix', 'release']
 
 export function registerCommands(
   context: vscode.ExtensionContext,
   getCtx: () => AahpContext | undefined,
   reloadCtx: () => void,
-  onAgentRuns?: (runs: AgentRun[]) => void
+  onAgentRuns?: (runs: AgentRun[]) => void,
+  monitor?: SessionMonitor
 ): vscode.Disposable[] {
   return [
 
@@ -133,7 +135,7 @@ export function registerCommands(
 
       spawnAllAgents(repos, runs => {
         onAgentRuns?.(runs)
-      }, undefined, limit).then(finalRuns => {
+      }, monitor, limit).then(finalRuns => {
         const done = finalRuns.filter(r => r.committed).length
         const failed = finalRuns.filter(r => r.status === 'failed').length
         vscode.window.showInformationMessage(
