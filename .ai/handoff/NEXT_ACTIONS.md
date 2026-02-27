@@ -8,77 +8,39 @@
 
 ## Status Summary
 
-| Status | Tasks |
-|--------|-------|
-| ✅ Done | T-001, T-002, T-004, T-005 |
-| ⚡ Ready | **T-006** (task creation), **T-007** (retry logic), **T-008** (release workflow), **T-009** (test coverage), T-010 (integration tests), T-011 (filtering) |
-| 🚫 Blocked | T-003 (needs VSCE_PAT from human) |
+| Status | Count | Tasks |
+|--------|-------|-------|
+| Done | 7 | T-001, T-002, T-004, T-005, T-006, T-007 |
+| Ready | 5 | T-003, T-008, T-009, T-010, T-011 |
+| Blocked | 0 | - |
 
 ---
 
-## ⚡ Ready - Work These Next
+## Ready - Work These Next
 
-### T-006: Add task creation from dashboard *(medium priority)*
+### T-003: Publish to VS Code Marketplace *(medium priority)*
 
-**Goal:** Allow creating new tasks directly from the sidebar dashboard.
-
-**Context:**
-- Currently the dashboard only supports changing task status via dropdown (`setTaskStatus` command)
-- Users need to manually edit MANIFEST.json to add tasks
-- Add a "New Task" button and command that prompts for title + priority
-
-**What to do:**
-1. Add `aahp.createTask` command in `commands.ts`
-2. Show input boxes: task title (required), priority (quick pick: high/medium/low), depends_on (optional, comma-separated)
-3. Generate next task ID from `manifest.next_task_id`, increment it
-4. Write the new task to MANIFEST.json with status "ready"
-5. Add "New Task" button to sidebar quick actions bar
-6. Register the command in `package.json` contributes.commands
-7. Reload context after creation
-
-**Files:**
-- `src/commands.ts`: add `aahp.createTask` handler
-- `src/sidebar.ts`: add button to actions bar
-- `package.json`: register command in contributes.commands
-
-**Definition of done:**
-- [ ] "New Task" button visible in sidebar actions
-- [ ] Creates task in MANIFEST.json with correct T-xxx ID
-- [ ] Increments next_task_id
-- [ ] Dashboard refreshes to show new task
-- [ ] Compile passes
-
----
-
-### T-007: Agent retry on failure with backoff *(medium priority)*
-
-**Goal:** Add retry capability when an agent fails.
+**Goal:** Publish the extension to the VS Code Marketplace.
 
 **Context:**
-- `spawnAllAgents()` in `agent-spawner.ts` sets `run.status = 'failed'` when agent exits non-zero or no commit detected
-- No retry mechanism exists - failed agents just show ERR in the dashboard
-- Add configurable retry (default: 1 retry) with exponential backoff
+- T-004 (CHANGELOG.md) is done - the formal dependency is satisfied
+- Still requires a human to provide the `VSCE_PAT` GitHub Actions secret
+- The `.vsix` package builds successfully via `vsce package`
 
 **What to do:**
-1. Add `aahp.agentMaxRetries` setting in `package.json` (default: 1, min: 0, max: 3)
-2. In `runSingleAgent()` inside `spawnAllAgents()`, wrap the agent execution in a retry loop
-3. On failure, wait `30s * 2^attempt` before retrying
-4. Update AgentRun type with `retryCount` and `maxRetries` fields
-5. Show retry status in the agent card: "Retrying (1/2)..."
-6. Add a manual "Retry" button in the dashboard agent cards for failed runs
-7. Wire retry button to re-run via `spawnAllAgents([failedRepo], ...)`
+1. Verify local install: `code --install-extension aahp-orchestrator-0.2.0.vsix`
+2. Ensure T-008 (release workflow) is done, or publish manually with `vsce publish`
+3. Add marketplace publish step to release workflow if T-008 is done
+4. Requires `VSCE_PAT` secret to be set in GitHub repo settings
 
 **Files:**
-- `src/agent-spawner.ts`: add retry loop in `runSingleAgent()`
-- `src/sidebar.ts`: add retry button to failed agent cards
-- `package.json`: add `aahp.agentMaxRetries` setting in contributes.configuration
+- `.github/workflows/release.yml` (if T-008 is done)
+- `package.json` (publisher field already set)
 
 **Definition of done:**
-- [ ] Failed agents auto-retry up to configured limit
-- [ ] Backoff delay between retries
-- [ ] Retry count visible in dashboard
-- [ ] Manual retry button for failed agents
-- [ ] Tests updated
+- [ ] Extension visible on VS Code Marketplace
+- [ ] CHANGELOG.md exists (done - T-004)
+- [ ] Version tag pushed
 
 ---
 
@@ -87,7 +49,7 @@
 **Goal:** Automate GitHub releases on version tags.
 
 **Context:**
-- T-004 (CHANGELOG.md) is now done - this task is unblocked
+- T-004 (CHANGELOG.md) is done - this task is unblocked
 - Publish .vsix as a GitHub Release asset when `git tag v*` is pushed
 
 **What to do:**
@@ -174,7 +136,7 @@
 **Goal:** Add filter controls to the aggregated task view.
 
 **Context:**
-- T-005 (aggregated all-repos view) is now done - this task is unblocked
+- T-005 (aggregated all-repos view) is done - this task is unblocked
 - The "All Open Tasks" section exists in sidebar but has no filters
 
 **What to do:**
@@ -194,32 +156,21 @@
 
 ---
 
-## 🚫 Blocked - Cannot Start Yet
+## Blocked
 
-### T-003: Publish to VS Code Marketplace *(medium priority)*
-
-**Blocked by:** Human must provide `VSCE_PAT` GitHub Actions secret.
-
-**What to do (once unblocked):**
-1. Verify local install: `code --install-extension aahp-orchestrator-0.2.0.vsix`
-2. Add marketplace publish step to release workflow (T-008)
-3. Run `vsce publish` or publish via workflow
-
-**Definition of done:**
-- [ ] Extension visible on VS Code Marketplace
-- [ ] CHANGELOG.md exists (done - T-004)
-- [ ] Version tag pushed
+*(No blocked tasks)*
 
 ---
 
-## ✅ Recently Completed
+## Recently Completed
 
 | Task | What Was Done | When |
 |------|--------------|------|
+| T-007: Agent retry on failure | Retry loop with exponential backoff (30s * 2^n), configurable max retries, dashboard retry button, 12 new tests (129 total) | 2026-02-28 |
+| T-006: Task creation from dashboard | "New Task" button + aahp.createTask command, prompts for title/priority/deps, writes to MANIFEST.json | 2026-02-27 |
 | T-005: All-repos open task view | Added "All Open Tasks" tree view to sidebar, 103 tests passing | 2026-02-27 |
 | T-004: CHANGELOG.md | Created CHANGELOG.md with v0.1.0 and v0.2.0 entries, vsce package passes | 2026-02-27 |
 | T-002: Automated tests | 72 Vitest unit tests across 5 suites (aahp-reader, agent-spawner, session-monitor, statusbar, security) | 2026-02-27 |
-| T-001: CI pipeline | `.github/workflows/ci.yml` - compile + lint + test on push/PR | 2026-02-27 |
 
 ---
 
