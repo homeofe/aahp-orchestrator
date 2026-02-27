@@ -26,7 +26,7 @@
 
 | Suite | Tests | Status | Last Run |
 |-------|-------|--------|----------|
-| unit | 0 | not set up | - |
+| unit | 72 | ✅ All passing | 2026-02-27 |
 | integration | 0 | not set up | - |
 | e2e | 0 | not set up | - |
 
@@ -37,9 +37,9 @@
 | Component | Status | Blocker |
 |-----------|--------|---------|
 | .vsix package | verified - v0.2.0 built | - |
-| VS Code Marketplace | not published | VSCE_PAT, T-001, T-002 |
+| VS Code Marketplace | not published | VSCE_PAT |
 | GitHub Releases | not tagged | - |
-| CI pipeline | not set up | T-001 |
+| CI pipeline | ✅ set up (T-001 done) | - |
 
 ---
 
@@ -47,9 +47,9 @@
 
 | Field | Value |
 |-------|-------|
-| Current task | idle |
-| Phase | idle |
-| Last completed | Bootstrap AAHP structure (2026-02-27) |
+| Current task | T-003 (Marketplace publish) - Blocked |
+| Phase | implementation |
+| Last completed | T-002: Add automated tests (2026-02-27) |
 | Rate limit | None |
 
 ---
@@ -58,9 +58,14 @@
 
 | ID | Task | Priority | Blocked by | Ready? |
 |----|------|----------|-----------|--------|
-| T-001 | Add GitHub Actions CI pipeline | HIGH | - | Ready |
-| T-002 | Add automated tests | HIGH | - | Ready |
-| T-003 | Publish to VS Code Marketplace | MEDIUM | T-001, T-002, VSCE_PAT | Blocked |
+| T-003 | Publish to VS Code Marketplace | MEDIUM | VSCE_PAT | Blocked |
+
+## Completed Tasks
+
+| ID | Task | Completed |
+|----|------|-----------|
+| T-001 | Add GitHub Actions CI pipeline | 2026-02-27 |
+| T-002 | Add automated tests (72 unit tests) | 2026-02-27 |
 
 ---
 
