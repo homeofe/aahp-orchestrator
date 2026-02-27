@@ -59,15 +59,20 @@ export interface AahpContext {
 // ── Reader ────────────────────────────────────────────────────────────────────
 
 function findHandoffDir(workspaceRoot: string): string | undefined {
-  // 1. Direct: workspace root itself has .ai/handoff/MANIFEST.json
-  const direct = path.join(workspaceRoot, '.ai', 'handoff')
+  const config = vscode.workspace.getConfiguration('aahp')
+  const isDevelopmentRoot: boolean = config.get('developmentRoot', false)
+  const rootOverride: string = config.get('rootFolderPath', '')
+  const scanRoot = rootOverride.trim() || workspaceRoot
+
+  // 1. Direct: scan root itself has .ai/handoff/MANIFEST.json
+  const direct = path.join(scanRoot, '.ai', 'handoff')
   if (fs.existsSync(path.join(direct, 'MANIFEST.json'))) return direct
 
-  // 2. Walk up from the currently active editor file
+  // 2. Walk up from the currently active editor file (always try this)
   const activeFile = vscode.window.activeTextEditor?.document.uri.fsPath
   if (activeFile) {
     let dir = path.dirname(activeFile)
-    while (dir.length >= workspaceRoot.length) {
+    while (dir.length >= scanRoot.length) {
       const candidate = path.join(dir, '.ai', 'handoff')
       if (fs.existsSync(path.join(candidate, 'MANIFEST.json'))) return candidate
       const parent = path.dirname(dir)
@@ -76,16 +81,18 @@ function findHandoffDir(workspaceRoot: string): string | undefined {
     }
   }
 
-  // 3. Scan immediate subdirectories of workspace root
-  try {
-    const entries = fs.readdirSync(workspaceRoot, { withFileTypes: true })
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue
-      const candidate = path.join(workspaceRoot, entry.name, '.ai', 'handoff')
-      if (fs.existsSync(path.join(candidate, 'MANIFEST.json'))) return candidate
+  // 3. Scan immediate subdirectories — only if developmentRoot is true OR rootOverride is set
+  if (isDevelopmentRoot || rootOverride.trim()) {
+    try {
+      const entries = fs.readdirSync(scanRoot, { withFileTypes: true })
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue
+        const candidate = path.join(scanRoot, entry.name, '.ai', 'handoff')
+        if (fs.existsSync(path.join(candidate, 'MANIFEST.json'))) return candidate
+      }
+    } catch {
+      // ignore read errors
     }
-  } catch {
-    // ignore read errors
   }
 
   return undefined

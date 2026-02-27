@@ -81,6 +81,29 @@
       }
     ]
   },
+  "configuration": {
+    "title": "AAHP Orchestrator",
+    "properties": {
+      "aahp.developmentRoot": {
+        "type": "boolean",
+        "default": false,
+        "markdownDescription": "Set to `true` if this workspace is a **root development folder** containing multiple repos as subdirectories (e.g. `_Development/openclaw-ops/`, `_Development/AAHP/`). The extension will scan subdirectories for `.ai/handoff/MANIFEST.json` and switch context based on the active file.",
+        "scope": "window"
+      },
+      "aahp.rootFolderPath": {
+        "type": "string",
+        "default": "",
+        "markdownDescription": "Optional: override the root path to scan for AAHP repos. Leave empty to use the workspace folder. Example: `E:\\_Development`",
+        "scope": "window"
+      },
+      "aahp.suppressRootPrompt": {
+        "type": "boolean",
+        "default": false,
+        "description": "Suppress the 'Is this a development root folder?' prompt on startup.",
+        "scope": "window"
+      }
+    }
+  },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
