@@ -323,10 +323,10 @@ h2 { font-size: 14px; margin: 0 0 4px; }
       ? this._repoOverviews.find(r => r.repoPath === this._focusedRepoPath)?.repoName
       : undefined
 
-    let html = `<button class="btn btn-primary" onclick="post('runAll')">Run All Agents</button>`
+    let html = `<button class="btn btn-primary" data-cmd="runAll">Run All Agents</button>`
 
     if (focusedName && this._focusedRepoPath) {
-      html += `<button class="btn btn-primary btn-secondary" onclick="post('runSingleRepo',{repoPath:'${escAttr(this._focusedRepoPath)}'})">Run ${escHtml(focusedName)}</button>`
+      html += `<button class="btn btn-primary btn-secondary" data-cmd="runSingleRepo" data-repo-path="${escHtml(this._focusedRepoPath)}">Run ${escHtml(focusedName)}</button>`
     }
 
     if (runs.length === 0 && this._activeSessions.length === 0 && this._queuedTasks.length === 0) {
@@ -339,7 +339,7 @@ h2 { font-size: 14px; margin: 0 0 4px; }
       const running = runs.filter(r => r.status === 'running').length
       const total = runs.length
 
-      html += `<div class="section-header" onclick="post('toggleSection',{section:'agents'})">
+      html += `<div class="section-header" data-cmd="toggleSection" data-section="agents">
         <span>Agent Runs - ${done}/${total} done${running > 0 ? `, ${running} active` : ''}</span>
         <span class="chevron ${this._collapsedSections.has('agents') ? '' : ''}">&#9660;</span>
       </div>`
@@ -418,7 +418,7 @@ h2 { font-size: 14px; margin: 0 0 4px; }
     }
 
     const isCollapsed = this._collapsedSections.has('repos')
-    let html = `<div class="section-header${isCollapsed ? ' collapsed' : ''}" onclick="post('toggleSection',{section:'repos'})">
+    let html = `<div class="section-header${isCollapsed ? ' collapsed' : ''}" data-cmd="toggleSection" data-section="repos">
       <span>Repos (${overviews.length})</span>
       <span class="chevron">&#9660;</span>
     </div>`
@@ -435,7 +435,7 @@ h2 { font-size: 14px; margin: 0 0 4px; }
       const taskLabel = `${readyCount}/${r.taskCounts.total}`
       const timeAgo = formatTimeAgo(r.lastActivity)
 
-      html += `<div class="card repo-card${isFocused ? ' focused' : ''}" onclick="post('focusRepo',{repoPath:'${escAttr(r.repoPath)}'})">
+      html += `<div class="card repo-card${isFocused ? ' focused' : ''}" data-cmd="focusRepo" data-repo-path="${escHtml(r.repoPath)}">
         <div class="repo-name"><span class="dot ${dotClass}"></span>${escHtml(r.repoName)}</div>
         <div class="repo-meta">
           <span class="badge phase">${escHtml(phase)}</span>
@@ -466,7 +466,7 @@ h2 { font-size: 14px; margin: 0 0 4px; }
     const phase = m.last_session?.phase ?? ''
     const topTask = getTopTask(m)
 
-    let html = `<div class="section-header" onclick="post('toggleSection',{section:'project'})">
+    let html = `<div class="section-header" data-cmd="toggleSection" data-section="project">
       <span>Project</span>
       <span class="chevron${this._collapsedSections.has('project') ? '' : ''}">&#9660;</span>
     </div>`
@@ -537,7 +537,7 @@ h2 { font-size: 14px; margin: 0 0 4px; }
         <td>${escHtml(t.title)}</td>
         <td><span class="${priClass}" style="font-size:10px">${escHtml(t.priority)}</span></td>
         <td>
-          <select class="status-select" onchange="post('setTaskStatus',{repoPath:'${escAttr(repoPath)}',taskId:'${escAttr(id)}',status:this.value})">
+          <select class="status-select" data-cmd="setTaskStatus" data-repo-path="${escHtml(repoPath)}" data-task-id="${escHtml(id)}">
             ${['ready', 'in_progress', 'done', 'blocked', 'pending'].map(s =>
               `<option value="${s}"${s === t.status ? ' selected' : ''}>${s}</option>`
             ).join('')}
@@ -558,10 +558,10 @@ h2 { font-size: 14px; margin: 0 0 4px; }
         <span>Actions</span>
       </div>
       <div class="actions-bar">
-        <button class="btn btn-secondary" onclick="post('updateManifest')">Checksums</button>
-        <button class="btn btn-secondary" onclick="post('commitSession')">Commit</button>
-        <button class="btn btn-secondary" onclick="post('setPhase')">Phase</button>
-        <button class="btn btn-secondary" onclick="post('copyContext')">Context</button>
+        <button class="btn btn-secondary" data-cmd="updateManifest">Checksums</button>
+        <button class="btn btn-secondary" data-cmd="commitSession">Commit</button>
+        <button class="btn btn-secondary" data-cmd="setPhase">Phase</button>
+        <button class="btn btn-secondary" data-cmd="copyContext">Context</button>
       </div>
     `
   }
@@ -574,6 +574,26 @@ h2 { font-size: 14px; margin: 0 0 4px; }
       function post(command, data) {
         vscode.postMessage(Object.assign({ command: command }, data || {}))
       }
+
+      document.addEventListener('click', function(e) {
+        var el = e.target.closest('[data-cmd]')
+        if (!el || el.tagName === 'SELECT') return
+        var cmd = el.dataset.cmd
+        var data = {}
+        if (el.dataset.repoPath) data.repoPath = el.dataset.repoPath
+        if (el.dataset.section) data.section = el.dataset.section
+        post(cmd, data)
+      })
+
+      document.addEventListener('change', function(e) {
+        var el = e.target.closest('[data-cmd]')
+        if (!el) return
+        post(el.dataset.cmd, {
+          repoPath: el.dataset.repoPath,
+          taskId: el.dataset.taskId,
+          status: el.value
+        })
+      })
     `
   }
 }
@@ -589,10 +609,6 @@ function getNonce(): string {
 
 function escHtml(s: string): string {
   return (s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-}
-
-function escAttr(s: string): string {
-  return (s ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;')
 }
 
 function formatTimeAgo(isoStr: string): string {
