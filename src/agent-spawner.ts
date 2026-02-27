@@ -48,7 +48,7 @@ export const sessionTokens: Record<AgentBackend, TokenUsage> = {
 /** Run an external command asynchronously without blocking the event loop (FIX 1) */
 async function runCommandAsync(executable: string, args: string[], cwd: string, timeoutMs: number = 60000): Promise<string> {
   return new Promise((resolve) => {
-    const proc = spawn(executable, args, { cwd, shell: false, stdio: ['pipe', 'pipe', 'pipe'] })
+    const proc = spawn(executable, args, { cwd, shell: process.platform === 'win32', stdio: ['pipe', 'pipe', 'pipe'] })
     let stdout = ''
     let stderr = ''
     const timer = setTimeout(() => { proc.kill(); resolve('ERROR: command timed out') }, timeoutMs)
@@ -69,7 +69,7 @@ async function runCommandAsync(executable: string, args: string[], cwd: string, 
 async function checkRecentCommit(repoPath: string): Promise<boolean> {
   return new Promise((resolve) => {
     const proc = spawn('git', ['log', '--oneline', '-1', '--since=5 minutes ago'], {
-      cwd: repoPath, shell: false, stdio: ['pipe', 'pipe', 'pipe'],
+      cwd: repoPath, shell: process.platform === 'win32', stdio: ['pipe', 'pipe', 'pipe'],
     })
     let output = ''
     proc.stdout.on('data', (d: Buffer) => { output += d.toString() })
@@ -82,7 +82,7 @@ async function checkRecentCommit(repoPath: string): Promise<boolean> {
 async function getHead(repoPath: string): Promise<string> {
   return new Promise((resolve) => {
     const proc = spawn('git', ['rev-parse', 'HEAD'], {
-      cwd: repoPath, shell: false, stdio: ['pipe', 'pipe', 'pipe'],
+      cwd: repoPath, shell: process.platform === 'win32', stdio: ['pipe', 'pipe', 'pipe'],
     })
     let out = ''
     proc.stdout.on('data', (d: Buffer) => { out += d.toString() })
@@ -231,7 +231,7 @@ async function runClaude(
       '--print',
       '--allowedTools', 'Read,Write,Edit,Bash,Glob,Grep,WebFetch',
       '--output-format', 'json',
-    ], { cwd: run.repo.repoPath, shell: false })
+    ], { cwd: run.repo.repoPath, shell: process.platform === 'win32' })
 
     proc.stdin.write(prompt)
     proc.stdin.end()
