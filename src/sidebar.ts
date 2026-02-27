@@ -124,7 +124,7 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
       ` : ''
 
       return `
-        <div class="section-title">Agent Runs — ${done}/${total} committed${running > 0 ? ` · ${running} active` : ''} · ⚡${claudeCount} 🤖${copilotCount}</div>
+        <div class="section-title">Agent Runs - ${done}/${total} committed${running > 0 ? ` · ${running} active` : ''} · ⚡${claudeCount} 🤖${copilotCount}</div>
         <table>${rows}</table>
         ${tokenBudgetHtml}
       `

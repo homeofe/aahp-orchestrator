@@ -10,7 +10,7 @@ import {
 export function createStatusBar(): vscode.StatusBarItem {
   const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10)
   item.command = 'aahp.openDashboard'
-  item.tooltip = 'AAHP Orchestrator — click to open dashboard'
+  item.tooltip = 'AAHP Orchestrator - click to open dashboard'
   return item
 }
 
@@ -30,7 +30,7 @@ export function updateStatusBar(item: vscode.StatusBarItem, ctx: AahpContext | u
 
   item.text = `$(robot) AAHP [${phase}]${taskLabel}`
   item.tooltip = new vscode.MarkdownString(
-    `**${m.project}** — AAHP v${m.aahp_version ?? m.version}\n\n` +
+    `**${m.project}** - AAHP v${m.aahp_version ?? m.version}\n\n` +
     `Phase: \`${phase}\`\n\n` +
     `> ${m.quick_context}\n\n` +
     `_Click to open dashboard_`

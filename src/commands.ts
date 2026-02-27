@@ -44,7 +44,7 @@ export function registerCommands(
 
       const msg = await vscode.window.showInputBox({
         prompt: 'Commit message',
-        value: `docs(aahp): update session — ${ctx.manifest.last_session.phase}`,
+        value: `docs(aahp): update session - ${ctx.manifest.last_session.phase}`,
         placeHolder: 'docs(aahp): ...',
       })
       if (!msg) return
@@ -104,7 +104,7 @@ export function registerCommands(
       )
       if (confirm !== 'Run All Agents') return
 
-      vscode.window.showInformationMessage(`🤖 AAHP: Spawning ${repos.length} agents — check Output channels per repo`)
+      vscode.window.showInformationMessage(`🤖 AAHP: Spawning ${repos.length} agents - check Output channels per repo`)
 
       spawnAllAgents(repos, runs => {
         onAgentRuns?.(runs)

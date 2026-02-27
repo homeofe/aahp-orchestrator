@@ -37,7 +37,7 @@ export function registerContextInjector(
       if (!aahp) return
 
       const m = aahp.manifest
-      const msg = `AAHP [${m.last_session.phase}] ${m.project} — ${m.quick_context.slice(0, 80)}`
+      const msg = `AAHP [${m.last_session.phase}] ${m.project} - ${m.quick_context.slice(0, 80)}`
 
       vscode.window.showInformationMessage(
         msg,

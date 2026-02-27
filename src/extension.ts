@@ -32,14 +32,14 @@ async function promptDevRootIfNeeded(context: vscode.ExtensionContext): Promise<
     'AAHP Orchestrator: No `.ai/handoff/MANIFEST.json` found at workspace root. ' +
     'Is this a root development folder containing multiple repos as subdirectories?',
     { modal: false },
-    'Yes — scan subdirs',
-    'No — single repo',
+    'Yes - scan subdirs',
+    'No - single repo',
     'Set custom path…'
   )
 
-  if (answer === 'Yes — scan subdirs') {
+  if (answer === 'Yes - scan subdirs') {
     await config.update('developmentRoot', true, vscode.ConfigurationTarget.Workspace)
-  } else if (answer === 'No — single repo') {
+  } else if (answer === 'No - single repo') {
     await config.update('suppressRootPrompt', true, vscode.ConfigurationTarget.Workspace)
   } else if (answer === 'Set custom path…') {
     const root = getWorkspaceRoot() ?? ''
@@ -122,7 +122,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // ── Workspace folder change ──────────────────────────────────────────────────
   context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(refreshAll))
 
-  console.log('AAHP Orchestrator activated', currentCtx ? `— project: ${currentCtx.manifest.project}` : '— no AAHP context')
+  console.log('AAHP Orchestrator activated', currentCtx ? `- project: ${currentCtx.manifest.project}` : '- no AAHP context')
 }
 
 export function deactivate(): void {}

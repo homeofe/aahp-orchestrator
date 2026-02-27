@@ -13,7 +13,7 @@ import {
 
 function handleHelp(stream: vscode.ChatResponseStream): void {
   stream.markdown([
-    '## @aahp — AAHP Orchestrator Commands\n',
+    '## @aahp - AAHP Orchestrator Commands\n',
     'All commands read from `.ai/handoff/MANIFEST.json` in the current workspace.\n',
     '| Command | Description | Example |',
     '|---------|-------------|---------|',
@@ -40,7 +40,7 @@ function handleStatus(stream: vscode.ChatResponseStream, aahp: AahpContext): voi
   const topTask = getTopTask(m)
   const version = m.aahp_version ?? m.version ?? '?'
   stream.markdown([
-    `## 🤖 AAHP Status — ${m.project}\n`,
+    `## 🤖 AAHP Status - ${m.project}\n`,
     `| Field | Value |`,
     `|-------|-------|`,
     `| **Version** | AAHP v${version} |`,
@@ -49,7 +49,7 @@ function handleStatus(stream: vscode.ChatResponseStream, aahp: AahpContext): voi
     `| **Last session** | ${m.last_session.timestamp} |`,
     `| **Last commit** | \`${m.last_session.commit}\` |`,
     `| **Duration** | ${m.last_session.duration_minutes} min |`,
-    topTask ? `| **Active task** | [${topTask[0]}] ${topTask[1].title} *(${topTask[1].status})* |` : '| **Active task** | — none — |',
+    topTask ? `| **Active task** | [${topTask[0]}] ${topTask[1].title} *(${topTask[1].status})* |` : '| **Active task** | - none - |',
     `\n### Quick Context\n> ${m.quick_context}`,
   ].join('\n'))
 }
@@ -65,11 +65,11 @@ function handleTasks(stream: vscode.ChatResponseStream, aahp: AahpContext): void
   }
   const rows = Object.entries(m.tasks)
     .map(([id, t]: [string, AahpTask]) =>
-      `| \`${id}\` | ${statusIcon[t.status] ?? '•'} ${t.status} | ${t.title} | ${t.priority} | ${t.depends_on?.join(', ') || '—'} |`
+      `| \`${id}\` | ${statusIcon[t.status] ?? '•'} ${t.status} | ${t.title} | ${t.priority} | ${t.depends_on?.join(', ') || '-'} |`
     )
     .join('\n')
   stream.markdown([
-    `## 📋 Tasks — ${m.project}\n`,
+    `## 📋 Tasks - ${m.project}\n`,
     '| ID | Status | Title | Priority | Depends on |',
     '|----|--------|-------|----------|------------|',
     rows,
@@ -91,7 +91,7 @@ function handleNext(stream: vscode.ChatResponseStream, aahp: AahpContext): void 
     const lines = ready.map(([id, t]) => `- **[${id}]** ${t.title} *(${t.priority} priority)*`)
     stream.markdown(`## ⏭ Next\n\nReady to start:\n\n${lines.join('\n')}`)
   } else if (blocked.length > 0) {
-    const lines = blocked.map(([id, t]) => `- **[${id}]** ${t.title} — blocked on: ${t.depends_on?.join(', ')}`)
+    const lines = blocked.map(([id, t]) => `- **[${id}]** ${t.title} - blocked on: ${t.depends_on?.join(', ')}`)
     stream.markdown(`## ⏭ Next\n\nAll remaining tasks are blocked:\n\n${lines.join('\n')}`)
   } else {
     stream.markdown('## ⏭ Next\n\n🎉 All tasks are done!')
@@ -157,7 +157,7 @@ function handleDone(
 
 // ── Chat Participant ──────────────────────────────────────────────────────────
 // Registered as @aahp in VS Code chat.
-// Every message gets full AAHP context injected — no questions asked.
+// Every message gets full AAHP context injected - no questions asked.
 
 export function registerChatParticipant(
   context: vscode.ExtensionContext,

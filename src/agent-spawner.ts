@@ -36,7 +36,7 @@ export interface AgentRun {
   finishedAt?: Date
 }
 
-/** Session-wide token accumulator — persists across multiple runAll calls */
+/** Session-wide token accumulator - persists across multiple runAll calls */
 export const sessionTokens: Record<AgentBackend, TokenUsage> = {
   claude: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
   copilot: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
@@ -108,7 +108,7 @@ export function buildAgentPrompt(repo: RepoTask): string {
     .map(([id, t]: [string, any]) => `  [${id}] ${t.status.padEnd(12)} ${t.title} (${t.priority ?? 'medium'})`)
     .join('\n')
 
-  return `# AAHP v3 Agent Task — ${repo.repoName}
+  return `# AAHP v3 Agent Task - ${repo.repoName}
 
 ## Project
 ${repo.quickContext}
@@ -201,7 +201,7 @@ async function runClaude(
         run.output.toLowerCase().includes('[main ') ||
         run.output.toLowerCase().includes('git commit')
 
-      channel.appendLine(`\n📊 Tokens — in:${run.tokens.inputTokens} out:${run.tokens.outputTokens} total:${run.tokens.totalTokens}`)
+      channel.appendLine(`\n📊 Tokens - in:${run.tokens.inputTokens} out:${run.tokens.outputTokens} total:${run.tokens.totalTokens}`)
       resolve()
     })
 
@@ -356,7 +356,7 @@ async function runCopilot(
     }
 
     if (toolCalls.length === 0) {
-      // No tools called — agent is done
+      // No tools called - agent is done
       channel.appendLine('\n✅ Copilot agent finished.')
       break
     }
@@ -396,7 +396,7 @@ async function runCopilot(
     run.output.toLowerCase().includes('committed') ||
     run.output.toLowerCase().includes('[main ')
 
-  channel.appendLine(`\n📊 Tokens — in:${run.tokens.inputTokens} out:${run.tokens.outputTokens} total:${run.tokens.totalTokens}`)
+  channel.appendLine(`\n📊 Tokens - in:${run.tokens.inputTokens} out:${run.tokens.outputTokens} total:${run.tokens.totalTokens}`)
 }
 
 // ── Orchestrator ──────────────────────────────────────────────────────────────
@@ -423,7 +423,7 @@ export async function spawnAllAgents(
     run.startedAt = new Date()
     onUpdate([...runs])
 
-    channel.appendLine(`🤖 AAHP Agent — ${run.repo.repoName}`)
+    channel.appendLine(`🤖 AAHP Agent - ${run.repo.repoName}`)
     channel.appendLine(`Backend: ${backendLabel} (priority: ${run.repo.taskPriority})`)
     channel.appendLine(`Task: [${run.repo.taskId}] ${run.repo.taskTitle}`)
     channel.appendLine('─'.repeat(60))
@@ -445,8 +445,8 @@ export async function spawnAllAgents(
 
       channel.appendLine('─'.repeat(60))
       channel.appendLine(run.committed
-        ? `✅ [${run.repo.taskId}] completed — committed via ${backendLabel}`
-        : `⚠️  Agent finished — review output (no commit detected)`
+        ? `✅ [${run.repo.taskId}] completed - committed via ${backendLabel}`
+        : `⚠️  Agent finished - review output (no commit detected)`
       )
     } catch (err) {
       run.status = 'failed'

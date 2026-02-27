@@ -1,6 +1,6 @@
 # AAHP Orchestrator
 
-> VS Code extension — orchestrate GitHub Copilot and Claude Code with AAHP v3 context. Zero questions. Full context. Both agents know what to do.
+> VS Code extension - orchestrate GitHub Copilot and Claude Code with AAHP v3 context. Zero questions. Full context. Both agents know what to do.
 
 [![VS Code](https://img.shields.io/badge/VS%20Code-%5E1.90-blue)](https://code.visualstudio.com/)
 [![AAHP v3](https://img.shields.io/badge/AAHP-v3-green)](https://github.com/homeofe/AAHP)
@@ -11,8 +11,8 @@
 
 | Package | What it does | When to use |
 |---------|-------------|-------------|
-| **aahp-orchestrator** ← you are here | VS Code extension. Injects AAHP context into Copilot/Claude Code while *you* code. Live status bar, `@aahp` chat, sidebar dashboard. | Every coding session — your human-in-the-loop assistant. |
-| **[aahp-runner](https://github.com/homeofe/aahp-runner)** | Autonomous CLI. Spawns Claude agents that implement tasks, run tests, and commit — no human input needed. Schedulable. | Overnight / CI — your unattended worker. |
+| **aahp-orchestrator** ← you are here | VS Code extension. Injects AAHP context into Copilot/Claude Code while *you* code. Live status bar, `@aahp` chat, sidebar dashboard. | Every coding session - your human-in-the-loop assistant. |
+| **[aahp-runner](https://github.com/homeofe/aahp-runner)** | Autonomous CLI. Spawns Claude agents that implement tasks, run tests, and commit - no human input needed. Schedulable. | Overnight / CI - your unattended worker. |
 
 Together they cover the full AAHP loop: you plan and guide during the day → the runner works through tasks at night → you wake up to committed progress.
 
@@ -26,7 +26,7 @@ Both GitHub Copilot and Claude Code start every session cold. They ask:
 - "What conventions do you follow?"
 - "Should I proceed?"
 
-Your **AAHP v3 handoff files** already have all the answers. This extension makes both agents read them — automatically.
+Your **AAHP v3 handoff files** already have all the answers. This extension makes both agents read them - automatically.
 
 ---
 
@@ -36,7 +36,7 @@ When you open a workspace with `.ai/handoff/MANIFEST.json`:
 
 1. The **status bar** shows your current phase and active task
 2. A **context banner** offers to copy AAHP context to clipboard with one click
-3. Use `@aahp` in any VS Code chat (Copilot or Claude) — full AAHP context is injected automatically as a system prompt before every message
+3. Use `@aahp` in any VS Code chat (Copilot or Claude) - full AAHP context is injected automatically as a system prompt before every message
 4. The **sidebar dashboard** shows all tasks, phase, last agent, and quick-action buttons
 
 ---
@@ -46,7 +46,7 @@ When you open a workspace with `.ai/handoff/MANIFEST.json`:
 | Feature | Details |
 |---------|---------|
 | `@aahp` chat participant | Context-aware proxy in VS Code chat. Reads MANIFEST.json, injects phase + tasks + conventions + trust as system prompt. No cold starts. |
-| Live status bar | `[impl] T-003: Fix CORS` — updates on every manifest change |
+| Live status bar | `[impl] T-003: Fix CORS` - updates on every manifest change |
 | Sidebar dashboard | Full AAHP state: tasks, phase, agent, quick_context, action buttons |
 | Auto context banner | On workspace open: offers to copy AAHP context to clipboard |
 | `Ctrl+Alt+A` | Copy full AAHP context to clipboard (paste into any chat) |
@@ -74,7 +74,7 @@ Open Copilot Chat or any VS Code chat panel and type:
 @aahp update MANIFEST.json with my progress
 ```
 
-The agent already knows your project, phase, conventions, and trust state — no explanation needed.
+The agent already knows your project, phase, conventions, and trust state - no explanation needed.
 
 ### Commands (Ctrl+Shift+P)
 ```

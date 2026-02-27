@@ -1,7 +1,7 @@
 {
   "name": "aahp-orchestrator",
   "displayName": "AAHP Orchestrator",
-  "description": "Orchestrate GitHub Copilot and Claude Code with AAHP v3 context — zero questions, full context.",
+  "description": "Orchestrate GitHub Copilot and Claude Code with AAHP v3 context - zero questions, full context.",
   "version": "0.2.0",
   "publisher": "homeofe",
   "license": "MIT",
@@ -24,7 +24,7 @@
         "id": "aahp.orchestrator",
         "name": "aahp",
         "fullName": "AAHP Orchestrator",
-        "description": "Context-aware AI proxy. Reads your .ai/handoff/ files — no questions asked.",
+        "description": "Context-aware AI proxy. Reads your .ai/handoff/ files - no questions asked.",
         "isSticky": true,
         "commands": [
           {

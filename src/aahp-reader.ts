@@ -81,7 +81,7 @@ function findHandoffDir(workspaceRoot: string): string | undefined {
     }
   }
 
-  // 3. Scan immediate subdirectories — only if developmentRoot is true OR rootOverride is set
+  // 3. Scan immediate subdirectories - only if developmentRoot is true OR rootOverride is set
   if (isDevelopmentRoot || rootOverride.trim()) {
     try {
       const entries = fs.readdirSync(scanRoot, { withFileTypes: true })
@@ -164,7 +164,7 @@ export function buildSystemPrompt(ctx: AahpContext): string {
     : ''
 
   const lines = [
-    `## AAHP v3 Context — ${m.project}`,
+    `## AAHP v3 Context - ${m.project}`,
     `Phase: ${m.last_session.phase}`,
     `Last agent: ${m.last_session.agent} @ ${m.last_session.timestamp}`,
     `Last commit: ${m.last_session.commit}`,
@@ -187,7 +187,7 @@ export function buildSystemPrompt(ctx: AahpContext): string {
     lines.push(ctx.trust.split('\n').slice(0, 20).join('\n'))
   }
 
-  lines.push(`\n---\nYou have full project context. Do NOT ask for clarification — act on the above.`)
+  lines.push(`\n---\nYou have full project context. Do NOT ask for clarification - act on the above.`)
 
   return lines.filter(l => l !== undefined).join('\n')
 }
