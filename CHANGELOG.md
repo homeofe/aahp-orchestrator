@@ -9,14 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned
 
-- Aggregated all-repos open task view in sidebar (T-005)
-- Task creation from dashboard (T-006)
-- Agent retry on failure with exponential backoff (T-007)
 - GitHub release workflow, tag-triggered (T-008)
 - Unit tests for chat-participant and context-injector (T-009)
 - Integration tests with VS Code extension host (T-010)
 - Dashboard task filtering and sorting (T-011)
-- Publish to VS Code Marketplace (T-003)
+
+## [0.3.0] - 2026-02-28
+
+### Added
+
+- VS Code Marketplace publishing support with extension icon, gallery metadata,
+  and `npm run publish` script (T-003)
+- Aggregated all-repos open task view in sidebar (T-005)
+- Task creation from dashboard with title, priority, and depends_on (T-006)
+- Agent retry on failure with configurable exponential backoff (T-007)
+- Extension icon (128x128 robot) for Marketplace listing
+- `homepage` and `bugs` URLs in package.json
+- `Chat` category for Marketplace discoverability
+
+### Changed
+
+- Updated CHANGELOG to reflect all completed work since v0.2.0
+- LICENSE copyright holder corrected to elvatis
 
 ## [0.2.0] - 2026-02-27
 
@@ -76,6 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Removed em dashes from all source files and documentation (style convention)
 
-[unreleased]: https://github.com/elvatis/aahp-orchestrator/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/elvatis/aahp-orchestrator/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/elvatis/aahp-orchestrator/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/elvatis/aahp-orchestrator/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/elvatis/aahp-orchestrator/releases/tag/v0.1.0

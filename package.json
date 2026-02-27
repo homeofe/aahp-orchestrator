@@ -2,18 +2,24 @@
   "name": "aahp-orchestrator",
   "displayName": "AAHP Orchestrator",
   "description": "Orchestrate GitHub Copilot and Claude Code with AAHP v3 context - zero questions, full context.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "elvatis",
   "license": "MIT",
+  "icon": "assets/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/elvatis/aahp-orchestrator.git"
+  },
+  "homepage": "https://github.com/elvatis/aahp-orchestrator#readme",
+  "bugs": {
+    "url": "https://github.com/elvatis/aahp-orchestrator/issues"
   },
   "engines": {
     "vscode": "^1.90.0"
   },
   "categories": [
     "AI",
+    "Chat",
     "Other"
   ],
   "keywords": [
@@ -22,8 +28,14 @@
     "claude",
     "ai",
     "orchestrator",
-    "handoff"
+    "handoff",
+    "context",
+    "agent"
   ],
+  "galleryBanner": {
+    "color": "#1e293b",
+    "theme": "dark"
+  },
   "activationEvents": [
     "onStartupFinished"
   ],
@@ -224,7 +236,8 @@
     "lint": "eslint src --ext ts --ignore-pattern __tests__ --ignore-pattern __mocks__",
     "test": "vitest run",
     "test:watch": "vitest",
-    "package": "vsce package"
+    "package": "vsce package",
+    "publish": "vsce publish"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

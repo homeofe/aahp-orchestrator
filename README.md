@@ -2,8 +2,10 @@
 
 > VS Code extension - orchestrate GitHub Copilot and Claude Code with AAHP v3 context. Zero questions. Full context. Both agents know what to do.
 
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/elvatis.aahp-orchestrator?label=Marketplace)](https://marketplace.visualstudio.com/items?itemName=elvatis.aahp-orchestrator)
 [![VS Code](https://img.shields.io/badge/VS%20Code-%5E1.90-blue)](https://code.visualstudio.com/)
 [![AAHP v3](https://img.shields.io/badge/AAHP-v3-green)](https://github.com/elvatis/AAHP)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## The AAHP Toolchain
 
@@ -56,9 +58,32 @@ When you open a workspace with `.ai/handoff/MANIFEST.json`:
 
 ---
 
+## Installation
+
+### From the VS Code Marketplace
+
+1. Open VS Code
+2. Press `Ctrl+Shift+X` (Extensions sidebar)
+3. Search for **AAHP Orchestrator**
+4. Click **Install**
+
+Or install from the command line:
+```bash
+code --install-extension elvatis.aahp-orchestrator
+```
+
+### From .vsix (manual)
+
+Download the latest `.vsix` from [GitHub Releases](https://github.com/elvatis/aahp-orchestrator/releases), then:
+```bash
+code --install-extension aahp-orchestrator-0.3.0.vsix
+```
+
+---
+
 ## Requirements
 
-- VS Code ≥ 1.90
+- VS Code >= 1.90
 - A workspace with `.ai/handoff/MANIFEST.json` ([AAHP v3 spec](https://github.com/elvatis/AAHP))
 - GitHub Copilot (for `@aahp` chat responses via LM API)
 
@@ -102,6 +127,18 @@ This extension reads the following files from `.ai/handoff/`:
 
 ---
 
+## Publishing
+
+To publish a new version to the VS Code Marketplace:
+
+1. Bump the version in `package.json`
+2. Update `CHANGELOG.md`
+3. Run `npm run publish` (requires `VSCE_PAT` environment variable)
+
+Or via CI: push a `v*` tag to trigger the release workflow.
+
+---
+
 ## License
 
-MIT © [elvatis](https://github.com/elvatis)
+MIT - [elvatis](https://github.com/elvatis)
