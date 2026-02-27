@@ -49,8 +49,10 @@ export function registerCommands(
       })
       if (!msg) return
 
+      // B-3: Use single quotes with proper escaping to prevent shell injection via backticks/$()
+      const safeMsg = msg.replace(/'/g, "'\\''")
       const terminal = vscode.window.createTerminal({ name: 'AAHP Commit', cwd: root })
-      terminal.sendText(`git add .ai/handoff/ && git commit -m "${msg.replace(/"/g, '\\"')}" -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"`)
+      terminal.sendText(`git add .ai/handoff/ && git commit -m '${safeMsg}' -m 'Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>'`)
       terminal.show()
     }),
 

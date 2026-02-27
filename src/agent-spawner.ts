@@ -149,9 +149,10 @@ async function runClaude(
   const prompt = buildAgentPrompt(run.repo)
 
   return new Promise<void>(resolve => {
+    // C-3: Use explicit --allowedTools instead of --dangerously-skip-permissions
     const proc = spawn('claude', [
       '--print',
-      '--dangerously-skip-permissions',
+      '--allowedTools', 'Read,Write,Edit,Bash,Glob,Grep,WebFetch',
       '--output-format', 'json',
     ], { cwd: run.repo.repoPath, shell: true })
 
@@ -169,12 +170,18 @@ async function runClaude(
 
     proc.stderr.on('data', (chunk: Buffer) => channel.append(chunk.toString()))
 
-    proc.on('close', () => {
+    proc.on('close', (code) => {
+      // B-1: Set failed status when process exits with non-zero code
+      if (code !== 0) {
+        run.status = 'failed'
+      }
+
       // Parse JSON output for token counts
       try {
         // claude --output-format json may return multiple JSON objects (stream) or one
         const lines = rawOutput.trim().split('\n')
-        const lastJson = lines.reverse().find(l => l.startsWith('{'))
+        // B-6: Use slice().reverse() to avoid mutating the original array
+        const lastJson = lines.slice().reverse().find(l => l.startsWith('{'))
         if (lastJson) {
           const parsed = JSON.parse(lastJson)
           const usage = parsed.usage ?? parsed.result?.usage ?? {}
@@ -197,11 +204,19 @@ async function runClaude(
       sessionTokens.claude.outputTokens += run.tokens.outputTokens
       sessionTokens.claude.totalTokens += run.tokens.totalTokens
 
-      run.committed = run.output.toLowerCase().includes('committed') ||
-        run.output.toLowerCase().includes('[main ') ||
-        run.output.toLowerCase().includes('git commit')
+      // B-5: Check for recent commits using git log instead of fragile string matching
+      try {
+        const gitCheck = spawnSync('git', ['log', '--oneline', '-1', '--since=5 minutes ago'], {
+          cwd: run.repo.repoPath, shell: false, encoding: 'utf8', timeout: 10000,
+        })
+        run.committed = (gitCheck.stdout?.trim().length ?? 0) > 0
+      } catch {
+        // Fallback to string matching if git log fails
+        run.committed = run.output.toLowerCase().includes('committed') ||
+          run.output.toLowerCase().includes('[main ')
+      }
 
-      channel.appendLine(`\n📊 Tokens - in:${run.tokens.inputTokens} out:${run.tokens.outputTokens} total:${run.tokens.totalTokens}`)
+      channel.appendLine(`\nTokens - in:${run.tokens.inputTokens} out:${run.tokens.outputTokens} total:${run.tokens.totalTokens}`)
       resolve()
     })
 
@@ -257,34 +272,52 @@ const COPILOT_TOOLS: vscode.LanguageModelChatTool[] = [
   },
 ]
 
+/** Allowlist of command prefixes for the run_command tool (C-2) */
+const ALLOWED_COMMAND_PREFIXES = [
+  'git', 'npm', 'pnpm', 'node', 'npx', 'tsc', 'vitest', 'jest',
+  'echo', 'ls', 'dir', 'cat', 'type', 'pwd', 'cd',
+]
+
 function executeCopilotTool(name: string, input: Record<string, string>, repoPath: string, channel: vscode.OutputChannel): string {
-  const safePath = (p: string) => path.resolve(repoPath, p.replace(/^\//, ''))
+  /** Resolve a relative path and verify it stays within the repo (C-4) */
+  const safePath = (p: string): string => {
+    const resolved = path.resolve(repoPath, p.replace(/^\//, ''))
+    const normalizedRepo = path.resolve(repoPath)
+    if (resolved !== normalizedRepo && !resolved.startsWith(normalizedRepo + path.sep)) {
+      throw new Error('path outside repo')
+    }
+    return resolved
+  }
 
   try {
     switch (name) {
       case 'read_file': {
         const fp = safePath(input['path'] ?? '')
-        if (!fp.startsWith(repoPath)) return 'ERROR: path outside repo'
         return fs.existsSync(fp) ? fs.readFileSync(fp, 'utf8').slice(0, 8000) : 'ERROR: file not found'
       }
       case 'write_file': {
         const fp = safePath(input['path'] ?? '')
-        if (!fp.startsWith(repoPath)) return 'ERROR: path outside repo'
         fs.mkdirSync(path.dirname(fp), { recursive: true })
         fs.writeFileSync(fp, input['content'] ?? '', 'utf8')
         return `OK: wrote ${fp}`
       }
       case 'list_dir': {
-        const dp = safePath(input['path'] ?? '.')
+        const dp = safePath(input['path'] ?? '.')  // C-5: path traversal check via safePath
         return fs.existsSync(dp)
           ? fs.readdirSync(dp, { withFileTypes: true }).map(e => `${e.isDirectory() ? '[dir]' : '[file]'} ${e.name}`).join('\n')
           : 'ERROR: directory not found'
       }
       case 'run_command': {
+        // C-2: Strict allowlist approach - only permit known-safe command prefixes
         const cmd = input['command'] ?? ''
-        // Safety: block destructive commands
-        if (/rm\s+-rf\s+\/|format|del\s+\/f\s+\/s/i.test(cmd)) return 'ERROR: command blocked'
-        const result = spawnSync(cmd, { cwd: repoPath, shell: true, encoding: 'utf8', timeout: 60000 })
+        const parts = cmd.trim().split(/\s+/)
+        const executable = parts[0] ?? ''
+        if (!ALLOWED_COMMAND_PREFIXES.includes(executable.toLowerCase())) {
+          return `ERROR: command '${executable}' not in allowlist. Allowed: ${ALLOWED_COMMAND_PREFIXES.join(', ')}`
+        }
+        // Use spawnSync with shell: false to avoid shell injection
+        const args = parts.slice(1)
+        const result = spawnSync(executable, args, { cwd: repoPath, shell: false, encoding: 'utf8', timeout: 60000 })
         return (result.stdout + result.stderr).slice(0, 4000) || `exit ${result.status}`
       }
       default: return `ERROR: unknown tool ${name}`
@@ -304,11 +337,11 @@ async function runCopilot(
 
   if (!model) {
     run.output = 'ERROR: No Copilot model available. Make sure GitHub Copilot Chat is installed and signed in.'
-    channel.appendLine(`❌ ${run.output}`)
+    channel.appendLine(run.output)
     return
   }
 
-  channel.appendLine(`🤖 Copilot model: ${model.name} (${model.id})`)
+  channel.appendLine(`Copilot model: ${model.name} (${model.id})`)
 
   const prompt = buildAgentPrompt(run.repo)
   const messages: vscode.LanguageModelChatMessage[] = [
@@ -318,17 +351,19 @@ async function runCopilot(
   const MAX_TURNS = 20
   let turns = 0
 
+  // B-4: Create a single CancellationTokenSource outside the loop to avoid leaks
+  const cts = new vscode.CancellationTokenSource()
+
   while (turns < MAX_TURNS) {
     turns++
-    channel.appendLine(`\n── Turn ${turns}/${MAX_TURNS} ──`)
+    channel.appendLine(`\n-- Turn ${turns}/${MAX_TURNS} --`)
 
-    const token = new vscode.CancellationTokenSource().token
     let response: vscode.LanguageModelChatResponse
 
     try {
-      response = await model.sendRequest(messages, { tools: COPILOT_TOOLS }, token)
+      response = await model.sendRequest(messages, { tools: COPILOT_TOOLS }, cts.token)
     } catch (err) {
-      channel.appendLine(`❌ Copilot error: ${String(err)}`)
+      channel.appendLine(`Copilot error: ${String(err)}`)
       break
     }
 
@@ -357,7 +392,7 @@ async function runCopilot(
 
     if (toolCalls.length === 0) {
       // No tools called - agent is done
-      channel.appendLine('\n✅ Copilot agent finished.')
+      channel.appendLine('\nCopilot agent finished.')
       break
     }
 
@@ -372,9 +407,9 @@ async function runCopilot(
     const toolResults: vscode.LanguageModelToolResultPart[] = []
     for (const call of toolCalls) {
       const input = call.input as Record<string, string>
-      channel.appendLine(`\n🔧 Tool: ${call.name}(${JSON.stringify(input).slice(0, 80)})`)
+      channel.appendLine(`\nTool: ${call.name}(${JSON.stringify(input).slice(0, 80)})`)
       const result = executeCopilotTool(call.name, input, run.repo.repoPath, channel)
-      channel.appendLine(`   → ${result.slice(0, 120)}`)
+      channel.appendLine(`   -> ${result.slice(0, 120)}`)
 
       if (call.name === 'run_command' && result.toLowerCase().includes('committed')) {
         run.committed = true
@@ -386,17 +421,28 @@ async function runCopilot(
     ;(messages[messages.length - 1] as any).content = toolResults
   }
 
+  // B-4: Dispose the CancellationTokenSource when done
+  cts.dispose()
+
   // Accumulate session tokens
   sessionTokens.copilot.inputTokens += run.tokens.inputTokens
   sessionTokens.copilot.outputTokens += run.tokens.outputTokens
   sessionTokens.copilot.totalTokens += run.tokens.totalTokens
 
-  // Detect commit from output
-  run.committed = run.committed ||
-    run.output.toLowerCase().includes('committed') ||
-    run.output.toLowerCase().includes('[main ')
+  // B-5: Check for recent commits using git log instead of fragile string matching
+  try {
+    const gitCheck = spawnSync('git', ['log', '--oneline', '-1', '--since=5 minutes ago'], {
+      cwd: run.repo.repoPath, shell: false, encoding: 'utf8', timeout: 10000,
+    })
+    run.committed = run.committed || (gitCheck.stdout?.trim().length ?? 0) > 0
+  } catch {
+    // Fallback to string matching if git log fails
+    run.committed = run.committed ||
+      run.output.toLowerCase().includes('committed') ||
+      run.output.toLowerCase().includes('[main ')
+  }
 
-  channel.appendLine(`\n📊 Tokens - in:${run.tokens.inputTokens} out:${run.tokens.outputTokens} total:${run.tokens.totalTokens}`)
+  channel.appendLine(`\nTokens - in:${run.tokens.inputTokens} out:${run.tokens.outputTokens} total:${run.tokens.totalTokens}`)
 }
 
 // ── Orchestrator ──────────────────────────────────────────────────────────────
@@ -406,6 +452,10 @@ export async function spawnAllAgents(
   repos: RepoTask[],
   onUpdate: (runs: AgentRun[]) => void
 ): Promise<AgentRun[]> {
+  // B-7: Reset session token counters at the start of each orchestration run
+  sessionTokens.claude = { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
+  sessionTokens.copilot = { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
+
   const runs: AgentRun[] = repos.map(repo => ({
     repo,
     status: 'queued' as AgentStatus,
@@ -415,18 +465,19 @@ export async function spawnAllAgents(
     tokens: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
   }))
 
-  const promises = runs.map((run, _i) => new Promise<void>(async resolve => {
+  // B-2: Extract async body into a proper async function instead of new Promise(async resolve)
+  async function runSingleAgent(run: AgentRun): Promise<void> {
     const backendLabel = run.backend === 'claude' ? 'Claude Code' : 'GitHub Copilot'
-    const channel = vscode.window.createOutputChannel(`AAHP [${run.backend === 'claude' ? '⚡' : '🤖'}${run.repo.repoName}]`)
+    const channel = vscode.window.createOutputChannel(`AAHP [${run.backend === 'claude' ? 'CL' : 'CP'} ${run.repo.repoName}]`)
 
     run.status = 'running'
     run.startedAt = new Date()
     onUpdate([...runs])
 
-    channel.appendLine(`🤖 AAHP Agent - ${run.repo.repoName}`)
+    channel.appendLine(`AAHP Agent - ${run.repo.repoName}`)
     channel.appendLine(`Backend: ${backendLabel} (priority: ${run.repo.taskPriority})`)
     channel.appendLine(`Task: [${run.repo.taskId}] ${run.repo.taskTitle}`)
-    channel.appendLine('─'.repeat(60))
+    channel.appendLine('-'.repeat(60))
     channel.show(true)
 
     try {
@@ -443,22 +494,21 @@ export async function spawnAllAgents(
         markManifestDone(run.repo, run.backend)
       }
 
-      channel.appendLine('─'.repeat(60))
+      channel.appendLine('-'.repeat(60))
       channel.appendLine(run.committed
-        ? `✅ [${run.repo.taskId}] completed - committed via ${backendLabel}`
-        : `⚠️  Agent finished - review output (no commit detected)`
+        ? `[${run.repo.taskId}] completed - committed via ${backendLabel}`
+        : `Agent finished - review output (no commit detected)`
       )
     } catch (err) {
       run.status = 'failed'
       run.finishedAt = new Date()
-      channel.appendLine(`❌ Agent error: ${String(err)}`)
+      channel.appendLine(`Agent error: ${String(err)}`)
     }
 
     onUpdate([...runs])
-    resolve()
-  }))
+  }
 
-  await Promise.all(promises)
+  await Promise.all(runs.map(run => runSingleAgent(run)))
   return runs
 }
 

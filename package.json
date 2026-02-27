@@ -118,40 +118,40 @@
         "key": "ctrl+alt+r",
         "mac": "cmd+alt+r"
       }
-    ]
-  },
-  "configuration": {
-    "title": "AAHP Orchestrator",
-    "properties": {
-      "aahp.developmentRoot": {
-        "type": "boolean",
-        "default": false,
-        "markdownDescription": "Set to `true` if this workspace is a **root development folder** containing multiple repos as subdirectories (e.g. `_Development/openclaw-ops/`, `_Development/AAHP/`). The extension will scan subdirectories for `.ai/handoff/MANIFEST.json` and switch context based on the active file.",
-        "scope": "window"
-      },
-      "aahp.rootFolderPath": {
-        "type": "string",
-        "default": "",
-        "markdownDescription": "Optional: override the root path to scan for AAHP repos. Leave empty to use the workspace folder. Example: `E:\\_Development`",
-        "scope": "window"
-      },
-      "aahp.suppressRootPrompt": {
-        "type": "boolean",
-        "default": false,
-        "description": "Suppress the 'Is this a development root folder?' prompt on startup.",
-        "scope": "window"
-      },
-      "aahp.agentBackend": {
-        "type": "string",
-        "default": "auto",
-        "enum": ["auto", "claude", "copilot"],
-        "enumDescriptions": [
-          "Auto: high-priority tasks → Claude Code, medium/low → GitHub Copilot",
-          "Always use Claude Code (claude CLI) for all agents",
-          "Always use GitHub Copilot (VS Code LM API) for all agents"
-        ],
-        "markdownDescription": "Which AI backend to use when spawning agents via **Run All Agents**. `auto` uses Claude for heavy tasks and Copilot for routine ones.",
-        "scope": "window"
+    ],
+    "configuration": {
+      "title": "AAHP Orchestrator",
+      "properties": {
+        "aahp.developmentRoot": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Set to `true` if this workspace is a **root development folder** containing multiple repos as subdirectories (e.g. `_Development/openclaw-ops/`, `_Development/AAHP/`). The extension will scan subdirectories for `.ai/handoff/MANIFEST.json` and switch context based on the active file.",
+          "scope": "window"
+        },
+        "aahp.rootFolderPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Optional: override the root path to scan for AAHP repos. Leave empty to use the workspace folder. Example: `E:\\_Development`",
+          "scope": "window"
+        },
+        "aahp.suppressRootPrompt": {
+          "type": "boolean",
+          "default": false,
+          "description": "Suppress the 'Is this a development root folder?' prompt on startup.",
+          "scope": "window"
+        },
+        "aahp.agentBackend": {
+          "type": "string",
+          "default": "auto",
+          "enum": ["auto", "claude", "copilot"],
+          "enumDescriptions": [
+            "Auto: high-priority tasks - Claude Code, medium/low - GitHub Copilot",
+            "Always use Claude Code (claude CLI) for all agents",
+            "Always use GitHub Copilot (VS Code LM API) for all agents"
+          ],
+          "markdownDescription": "Which AI backend to use when spawning agents via **Run All Agents**. `auto` uses Claude for heavy tasks and Copilot for routine ones.",
+          "scope": "window"
+        }
       }
     }
   },
