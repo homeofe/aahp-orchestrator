@@ -6,6 +6,43 @@
 
 ---
 
+## 2026-02-27 Claude Code: Comprehensive task audit and dashboard update
+
+**Agent:** Claude Code (claude-opus-4-6)
+**Phase:** implementation
+**Branch:** main
+
+### What was done
+
+- Audited entire codebase to identify all development gaps and missing features
+- Added 8 new tasks (T-004 through T-011) to MANIFEST.json, DASHBOARD.md, and NEXT_ACTIONS.md
+- Updated DASHBOARD.md: corrected component test counts, detailed open task table with dependencies
+- Updated NEXT_ACTIONS.md: full agent-ready descriptions for all 9 open tasks with files, context, and definition of done
+- Updated STATUS.md: "What is Missing" table now references specific task IDs
+- Updated MANIFEST.json: next_task_id bumped to 12, all tasks have notes field
+
+### Tasks identified
+
+| ID | Task | Priority | Status |
+|----|------|----------|--------|
+| T-004 | Add CHANGELOG.md | HIGH | Ready |
+| T-005 | Aggregated all-repos open task view in sidebar | HIGH | Ready |
+| T-006 | Add task creation from dashboard | MEDIUM | Ready |
+| T-007 | Agent retry on failure with backoff | MEDIUM | Ready |
+| T-008 | GitHub release workflow (tag-triggered) | MEDIUM | Blocked (T-004) |
+| T-009 | Test chat-participant and context-injector | MEDIUM | Ready |
+| T-010 | Integration tests with VS Code extension host | LOW | Ready |
+| T-011 | Dashboard task filtering and sorting | LOW | Blocked (T-005) |
+
+### Decisions made
+
+- T-004 (CHANGELOG.md) elevated to HIGH priority because it blocks both T-003 and T-008
+- T-005 (aggregated task view) set to HIGH - this is the core feature gap users notice
+- T-003 dependency updated: now depends on T-004 (not T-001/T-002 which are done)
+- Task notes field added to all tasks in MANIFEST.json for agent context
+
+---
+
 ## 2026-02-27 Claude Code: Add GitHub Actions CI Pipeline (T-001)
 
 **Agent:** Claude Code (claude-opus-4-6)

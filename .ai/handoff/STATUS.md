@@ -50,13 +50,17 @@
 
 ## What is Missing
 
-| Gap | Severity | Description |
-|-----|----------|-------------|
-| CI pipeline | DONE | GitHub Actions workflow added with tests |
-| Automated tests | DONE | 72 unit tests via Vitest |
-| VS Code Marketplace publish | MEDIUM | .vsix packaged but not published (T-003) |
-| CHANGELOG.md | LOW | No changelog tracking versions |
-| Integration tests | LOW | Unit tests only - no VS Code extension host tests |
+| Gap | Severity | Task | Description |
+|-----|----------|------|-------------|
+| CHANGELOG.md | HIGH | T-004 | Required for Marketplace publish and GitHub releases |
+| Aggregated task view | HIGH | T-005 | No unified view of open tasks across all repos in sidebar |
+| Task creation | MEDIUM | T-006 | Cannot create tasks from dashboard - must edit MANIFEST.json manually |
+| Agent retry | MEDIUM | T-007 | Failed agents have no retry mechanism |
+| Release workflow | MEDIUM | T-008 | No GitHub releases or tag-triggered builds (blocked by T-004) |
+| Chat/injector tests | MEDIUM | T-009 | 7 slash command handlers + context-injector untested |
+| VS Code Marketplace | MEDIUM | T-003 | .vsix packaged but not published (blocked by T-004 + VSCE_PAT) |
+| Integration tests | LOW | T-010 | Unit tests only - no VS Code extension host tests |
+| Task filtering | LOW | T-011 | No filters/sorting in task view (blocked by T-005) |
 
 ---
 
