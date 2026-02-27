@@ -75,6 +75,9 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
         case 'runSingleRepo':
           vscode.commands.executeCommand('aahp.runSingleRepo', msg.repoPath)
           break
+        case 'retryAgent':
+          vscode.commands.executeCommand('aahp.retryAgent', msg.repoPath, msg.taskId)
+          break
         case 'toggleSection':
           if (this._collapsedSections.has(msg.section)) {
             this._collapsedSections.delete(msg.section)
@@ -365,13 +368,18 @@ h2 { font-size: 14px; margin: 0 0 4px; }
             : `<span style="color:#22c55e">copilot</span>`
           const tokStr = r.tokens.totalTokens > 0 ? ` | ${r.tokens.totalTokens.toLocaleString()}t` : ''
 
+          const retryLabel = r.retryCount > 0 ? ` | retry ${r.retryCount}/${r.maxRetries}` : ''
+          const retryBtn = r.status === 'failed'
+            ? ` <button class="btn btn-secondary" style="font-size:10px;padding:1px 6px;margin-left:6px" data-cmd="retryAgent" data-repo-path="${escHtml(r.repo.repoPath)}" data-task-id="${escHtml(r.repo.taskId)}">Retry</button>`
+            : ''
+
           html += `<div class="agent-card st-${r.status}">
             <div class="agent-header">
               <span class="mono" style="font-size:10px;opacity:.6">[${icon}]</span>
               <strong>${escHtml(r.repo.repoName)}</strong>
-              ${backendLabel}
+              ${backendLabel}${retryBtn}
             </div>
-            <div class="agent-detail">${escHtml(r.repo.taskId)} - ${elapsed}${tokStr}</div>
+            <div class="agent-detail">${escHtml(r.repo.taskId)} - ${elapsed}${tokStr}${retryLabel}</div>
           </div>`
         }
 
@@ -590,6 +598,7 @@ h2 { font-size: 14px; margin: 0 0 4px; }
         var data = {}
         if (el.dataset.repoPath) data.repoPath = el.dataset.repoPath
         if (el.dataset.section) data.section = el.dataset.section
+        if (el.dataset.taskId) data.taskId = el.dataset.taskId
         post(cmd, data)
       })
 

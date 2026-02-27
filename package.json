@@ -108,6 +108,10 @@
       {
         "command": "aahp.createTask",
         "title": "AAHP: Create New Task"
+      },
+      {
+        "command": "aahp.retryAgent",
+        "title": "AAHP: Retry Failed Agent"
       }
     ],
     "viewsContainers": {
@@ -196,6 +200,14 @@
           "default": 0,
           "minimum": 0,
           "markdownDescription": "Maximum number of agents to run **in parallel** when using Run All Agents. `0` = unlimited (all at once). Set to e.g. `3` or `5` to cap token spend and avoid overloading your API quota.",
+          "scope": "window"
+        },
+        "aahp.agentMaxRetries": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0,
+          "maximum": 5,
+          "markdownDescription": "Maximum number of **automatic retries** when an agent fails (exits non-zero or no commit detected). Uses exponential backoff between attempts. Set to `0` to disable retries.",
           "scope": "window"
         }
       }

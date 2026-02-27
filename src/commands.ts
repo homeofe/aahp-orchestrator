@@ -8,7 +8,7 @@ import {
   saveManifest,
   getWorkspaceRoot,
 } from './aahp-reader'
-import { scanAllRepos, spawnAllAgents, getDevRoot, AgentRun } from './agent-spawner'
+import { scanAllRepos, spawnAllAgents, retryFailedAgent, getDevRoot, AgentRun } from './agent-spawner'
 import { SessionMonitor } from './session-monitor'
 import { AahpDashboardProvider } from './sidebar'
 const PHASES = ['research', 'architecture', 'implementation', 'review', 'fix', 'release']
@@ -217,6 +217,76 @@ export function registerCommands(
       } catch (err) {
         vscode.window.showWarningMessage(`AAHP: Failed to update task - ${String(err)}`)
       }
+    }),
+
+    // ── Retry Failed Agent ─────────────────────────────────────────────────────
+    vscode.commands.registerCommand('aahp.retryAgent', async (repoPath: string, taskId: string) => {
+      if (!repoPath || !taskId) {
+        vscode.window.showWarningMessage('AAHP: No repo/task specified for retry.')
+        return
+      }
+
+      const devRoot = getDevRoot()
+      if (!devRoot) {
+        vscode.window.showWarningMessage('AAHP: No root path configured.')
+        return
+      }
+
+      const repos = scanAllRepos(devRoot).filter(r => r.repoPath === repoPath)
+      const repo = repos.find(r => r.taskId === taskId)
+        ?? repos[0]
+
+      if (!repo) {
+        // Build a minimal RepoTask from the manifest if scanAllRepos does not return it
+        const manifestPath = path.join(repoPath, '.ai', 'handoff', 'MANIFEST.json')
+        if (!fs.existsSync(manifestPath)) {
+          vscode.window.showWarningMessage('AAHP: No manifest found for retry.')
+          return
+        }
+        try {
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+          const task = manifest.tasks?.[taskId]
+          if (!task) {
+            vscode.window.showWarningMessage(`AAHP: Task ${taskId} not found in manifest.`)
+            return
+          }
+          const fallbackRepo = {
+            repoPath,
+            repoName: path.basename(repoPath),
+            manifestPath,
+            taskId,
+            taskTitle: task.title,
+            taskPriority: task.priority ?? 'medium',
+            phase: manifest.last_session?.phase ?? 'unknown',
+            quickContext: manifest.quick_context ?? '',
+          }
+          vscode.window.showInformationMessage(`AAHP: Retrying [${taskId}] for ${fallbackRepo.repoName}...`)
+          retryFailedAgent(fallbackRepo, runs => { onAgentRuns?.(runs) }, monitor).then(finalRuns => {
+            const r = finalRuns[0]
+            if (r?.committed) {
+              vscode.window.showInformationMessage(`AAHP: Retry succeeded - [${taskId}] committed.`)
+            } else {
+              vscode.window.showInformationMessage(`AAHP: Retry finished - review output.`)
+            }
+            reloadCtx()
+          })
+          return
+        } catch (err) {
+          vscode.window.showWarningMessage(`AAHP: Failed to read manifest for retry - ${String(err)}`)
+          return
+        }
+      }
+
+      vscode.window.showInformationMessage(`AAHP: Retrying [${repo.taskId}] for ${repo.repoName}...`)
+      retryFailedAgent(repo, runs => { onAgentRuns?.(runs) }, monitor).then(finalRuns => {
+        const r = finalRuns[0]
+        if (r?.committed) {
+          vscode.window.showInformationMessage(`AAHP: Retry succeeded - [${repo.taskId}] committed.`)
+        } else {
+          vscode.window.showInformationMessage(`AAHP: Retry finished - review output.`)
+        }
+        reloadCtx()
+      })
     }),
 
     // ── Create Task ──────────────────────────────────────────────────────────────

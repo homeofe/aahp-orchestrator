@@ -35,6 +35,8 @@ export interface AgentRun {
   tokens: TokenUsage
   startedAt?: Date
   finishedAt?: Date
+  retryCount: number
+  maxRetries: number
 }
 
 /** Session-wide token accumulator - persists across multiple runAll calls */
@@ -577,6 +579,27 @@ async function runCopilot(
   channel.appendLine(`\nTokens - in:${run.tokens.inputTokens} out:${run.tokens.outputTokens} total:${run.tokens.totalTokens}`)
 }
 
+// ── Retry helpers ────────────────────────────────────────────────────────────
+
+/** Base delay for exponential backoff (ms) */
+const RETRY_BASE_DELAY_MS = 30_000
+
+/** Read the configured max retries from VS Code settings */
+export function getMaxRetries(): number {
+  const config = vscode.workspace.getConfiguration('aahp')
+  return config.get<number>('agentMaxRetries', 1)
+}
+
+/** Calculate exponential backoff delay: baseDelay * 2^attempt (capped at 5 min) */
+export function retryDelay(attempt: number, baseMs = RETRY_BASE_DELAY_MS): number {
+  return Math.min(baseMs * Math.pow(2, attempt), 5 * 60 * 1000)
+}
+
+/** Sleep for given milliseconds (cancellable via AbortSignal) */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 // ── Orchestrator ──────────────────────────────────────────────────────────────
 
 /** Spawn one agent per repo, all in parallel. Auto-selects Claude or Copilot per task.
@@ -627,6 +650,8 @@ export async function spawnAllAgents(
     return []
   }
 
+  const maxRetries = getMaxRetries()
+
   const runs: AgentRun[] = toSpawn.map(repo => ({
     repo,
     status: 'queued' as AgentStatus,
@@ -634,6 +659,8 @@ export async function spawnAllAgents(
     output: '',
     committed: false,
     tokens: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+    retryCount: 0,
+    maxRetries,
   }))
 
   // B-2: Extract async body into a proper async function instead of new Promise(async resolve)
@@ -658,32 +685,62 @@ export async function spawnAllAgents(
     channel.appendLine(`AAHP Agent - ${run.repo.repoName}`)
     channel.appendLine(`Backend: ${backendLabel} (priority: ${run.repo.taskPriority})`)
     channel.appendLine(`Task: [${run.repo.taskId}] ${run.repo.taskTitle}`)
+    if (run.maxRetries > 0) {
+      channel.appendLine(`Retries: up to ${run.maxRetries}`)
+    }
     channel.appendLine('-'.repeat(60))
     channel.show(true)
 
-    try {
-      if (run.backend === 'claude') {
-        await runClaude(run, channel, () => onUpdate([...runs]))
-      } else {
-        await runCopilot(run, channel, () => onUpdate([...runs]))
+    // Retry loop: attempt 0 is the initial run, then up to maxRetries additional attempts
+    for (let attempt = 0; attempt <= run.maxRetries; attempt++) {
+      if (attempt > 0) {
+        // This is a retry - wait with exponential backoff
+        const delayMs = retryDelay(attempt - 1)
+        const delaySec = Math.round(delayMs / 1000)
+        run.retryCount = attempt
+        run.status = 'queued'
+        run.output = ''
+        run.committed = false
+        run.tokens = { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
+        channel.appendLine(`\n${'='.repeat(60)}`)
+        channel.appendLine(`RETRY ${attempt}/${run.maxRetries} - waiting ${delaySec}s (backoff)...`)
+        channel.appendLine('='.repeat(60))
+        onUpdate([...runs])
+        await sleep(delayMs)
       }
 
-      run.finishedAt = new Date()
-      run.status = run.committed ? 'done' : 'failed'
+      run.status = 'running'
+      onUpdate([...runs])
 
-      if (run.committed) {
-        await markManifestDone(run.repo, run.backend)
+      try {
+        if (run.backend === 'claude') {
+          await runClaude(run, channel, () => onUpdate([...runs]))
+        } else {
+          await runCopilot(run, channel, () => onUpdate([...runs]))
+        }
+
+        run.finishedAt = new Date()
+        run.status = run.committed ? 'done' : 'failed'
+
+        if (run.committed) {
+          await markManifestDone(run.repo, run.backend)
+          channel.appendLine('-'.repeat(60))
+          channel.appendLine(`[${run.repo.taskId}] completed - committed via ${backendLabel}`)
+          break // success - no more retries
+        }
+
+        channel.appendLine('-'.repeat(60))
+        if (attempt < run.maxRetries) {
+          channel.appendLine(`Agent finished without commit - will retry (${attempt + 1}/${run.maxRetries})`)
+        } else {
+          channel.appendLine('Agent finished - review output (no commit detected)')
+        }
+      } catch (err) {
+        run.status = 'failed'
+        run.finishedAt = new Date()
+        channel.appendLine(`Agent error: ${String(err)}`)
+        if (attempt >= run.maxRetries) break // exhausted retries
       }
-
-      channel.appendLine('-'.repeat(60))
-      channel.appendLine(run.committed
-        ? `[${run.repo.taskId}] completed - committed via ${backendLabel}`
-        : `Agent finished - review output (no commit detected)`
-      )
-    } catch (err) {
-      run.status = 'failed'
-      run.finishedAt = new Date()
-      channel.appendLine(`Agent error: ${String(err)}`)
     }
 
     // Deregister session and drain queue for this repo
@@ -707,6 +764,15 @@ export async function spawnAllAgents(
 
   await runWithConcurrencyLimit(runs, maxConcurrent, runSingleAgent)
   return runs
+}
+
+/** Re-run a single failed agent with fresh retry budget. Called from the dashboard retry button. */
+export async function retryFailedAgent(
+  repo: RepoTask,
+  onUpdate: (runs: AgentRun[]) => void,
+  monitor?: SessionMonitor,
+): Promise<AgentRun[]> {
+  return spawnAllAgents([repo], onUpdate, monitor, 1)
 }
 
 // ── Concurrency limiter ───────────────────────────────────────────────────────
