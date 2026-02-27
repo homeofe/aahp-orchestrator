@@ -59,8 +59,36 @@ export interface AahpContext {
 // ── Reader ────────────────────────────────────────────────────────────────────
 
 function findHandoffDir(workspaceRoot: string): string | undefined {
-  const candidate = path.join(workspaceRoot, '.ai', 'handoff')
-  return fs.existsSync(candidate) ? candidate : undefined
+  // 1. Direct: workspace root itself has .ai/handoff/MANIFEST.json
+  const direct = path.join(workspaceRoot, '.ai', 'handoff')
+  if (fs.existsSync(path.join(direct, 'MANIFEST.json'))) return direct
+
+  // 2. Walk up from the currently active editor file
+  const activeFile = vscode.window.activeTextEditor?.document.uri.fsPath
+  if (activeFile) {
+    let dir = path.dirname(activeFile)
+    while (dir.length >= workspaceRoot.length) {
+      const candidate = path.join(dir, '.ai', 'handoff')
+      if (fs.existsSync(path.join(candidate, 'MANIFEST.json'))) return candidate
+      const parent = path.dirname(dir)
+      if (parent === dir) break
+      dir = parent
+    }
+  }
+
+  // 3. Scan immediate subdirectories of workspace root
+  try {
+    const entries = fs.readdirSync(workspaceRoot, { withFileTypes: true })
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue
+      const candidate = path.join(workspaceRoot, entry.name, '.ai', 'handoff')
+      if (fs.existsSync(path.join(candidate, 'MANIFEST.json'))) return candidate
+    }
+  } catch {
+    // ignore read errors
+  }
+
+  return undefined
 }
 
 function readFile(dir: string, name: string): string | undefined {

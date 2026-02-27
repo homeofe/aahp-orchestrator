@@ -29,9 +29,9 @@ export function registerContextInjector(
   )
 
   // Notification banner when workspace opens with AAHP context
+  // Fires once per session when the user first opens a file
   disposables.push(
     vscode.window.onDidChangeActiveTextEditor(() => {
-      // Only fire once per session
       if (context.workspaceState.get('aahp.contextBannerShown')) return
       const aahp = getCtx()
       if (!aahp) return

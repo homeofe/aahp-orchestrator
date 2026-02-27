@@ -57,7 +57,7 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(d)
   }
 
-  // ── File watcher: live-reload manifest on change ─────────────────────────────
+  // ── File watcher: live-reload manifest on change (any subdir) ───────────────
   const watcher = vscode.workspace.createFileSystemWatcher(
     '**/.ai/handoff/MANIFEST.json'
   )
@@ -70,6 +70,15 @@ export function activate(context: vscode.ExtensionContext): void {
   watcher.onDidCreate(onManifestChange)
   watcher.onDidDelete(onManifestChange)
   context.subscriptions.push(watcher)
+
+  // ── Re-resolve context when active editor changes (user switches repo) ───────
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(() => {
+      reloadContext()
+      updateStatusBar(statusBar, currentCtx)
+      dashboardProvider.update(currentCtx)
+    })
+  )
 
   // ── Workspace folder change ──────────────────────────────────────────────────
   context.subscriptions.push(
