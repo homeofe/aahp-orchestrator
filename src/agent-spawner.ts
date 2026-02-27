@@ -116,8 +116,16 @@ export function scanAllRepos(rootDir: string): RepoTask[] {
 
     try {
       const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
-      const tasks: Record<string, { status: string; title: string; priority?: string }> = manifest.tasks ?? {}
-      const readyTask = Object.entries(tasks).find(([, t]) => t.status === 'ready' || t.status === 'in_progress')
+      const tasks: Record<string, { status: string; title: string; priority?: string; depends_on?: string[] }> = manifest.tasks ?? {}
+      const readyTask = Object.entries(tasks).find(([, t]) => {
+        if (t.status === 'ready' || t.status === 'in_progress' || t.status === 'pending') return true
+        // Auto-detect blocked tasks where all dependencies are already done
+        if (t.status === 'blocked') {
+          const deps = t.depends_on ?? []
+          return deps.length > 0 && deps.every((depId: string) => tasks[depId]?.status === 'done' || tasks[depId]?.status === 'completed')
+        }
+        return false
+      })
       if (!readyTask) continue
 
       results.push({

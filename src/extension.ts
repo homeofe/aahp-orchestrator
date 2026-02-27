@@ -59,7 +59,7 @@ async function promptDevRootIfNeeded(context: vscode.ExtensionContext): Promise<
 
 // ── Activate ──────────────────────────────────────────────────────────────────
 
-export function activate(context: vscode.ExtensionContext): void {
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
   // Initial load
   reloadContext()
 
@@ -111,7 +111,8 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // ── Session Monitor ─────────────────────────────────────────────────────────
   const monitor = new SessionMonitor(context)
-  monitor.clearStaleSessions()
+  await monitor.clearStaleSessions()
+  await monitor.clearQueue()  // also clear any tasks stuck in queue from previous stale sessions
 
   // ── Session monitor live updates ────────────────────────────────────────────
   monitor.onChange(() => {

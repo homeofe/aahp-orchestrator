@@ -86,6 +86,12 @@ export class SessionMonitor {
     this._notify()
   }
 
+  /** Clear the task queue — call on extension activate to remove tasks stuck in queue due to stale sessions */
+  async clearQueue(): Promise<void> {
+    await this._ctx.globalState.update('aahp.taskQueue', [])
+    this._notify()
+  }
+
   // ── Task queue ────────────────────────────────────────────────────────────
 
   getQueue(): QueuedTask[] {
