@@ -12,8 +12,18 @@
   "engines": {
     "vscode": "^1.90.0"
   },
-  "categories": ["AI", "Other"],
-  "keywords": ["aahp", "copilot", "claude", "ai", "orchestrator", "handoff"],
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "keywords": [
+    "aahp",
+    "copilot",
+    "claude",
+    "ai",
+    "orchestrator",
+    "handoff"
+  ],
   "activationEvents": [
     "onStartupFinished"
   ],
@@ -143,7 +153,11 @@
         "aahp.agentBackend": {
           "type": "string",
           "default": "auto",
-          "enum": ["auto", "claude", "copilot"],
+          "enum": [
+            "auto",
+            "claude",
+            "copilot"
+          ],
           "enumDescriptions": [
             "Auto: high-priority tasks - Claude Code, medium/low - GitHub Copilot",
             "Always use Claude Code (claude CLI) for all agents",
@@ -166,7 +180,9 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "lint": "eslint src --ext ts",
+    "lint": "eslint src --ext ts --ignore-pattern __tests__ --ignore-pattern __mocks__",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "package": "vsce package"
   },
   "devDependencies": {
@@ -174,8 +190,9 @@
     "@types/vscode": "^1.90.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
+    "@vscode/vsce": "^2.26.0",
     "eslint": "^8.0.0",
     "typescript": "^5.5.0",
-    "@vscode/vsce": "^2.26.0"
+    "vitest": "^4.0.18"
   }
 }
