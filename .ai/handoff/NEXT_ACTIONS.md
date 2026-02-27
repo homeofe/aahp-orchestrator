@@ -10,39 +10,13 @@
 
 | Status | Count | Tasks |
 |--------|-------|-------|
-| Done | 7 | T-001, T-002, T-004, T-005, T-006, T-007 |
-| Ready | 5 | T-003, T-008, T-009, T-010, T-011 |
+| Done | 8 | T-001, T-002, T-003, T-004, T-005, T-006, T-007 |
+| Ready | 4 | T-008, T-009, T-010, T-011 |
 | Blocked | 0 | - |
 
 ---
 
 ## Ready - Work These Next
-
-### T-003: Publish to VS Code Marketplace *(medium priority)*
-
-**Goal:** Publish the extension to the VS Code Marketplace.
-
-**Context:**
-- T-004 (CHANGELOG.md) is done - the formal dependency is satisfied
-- Still requires a human to provide the `VSCE_PAT` GitHub Actions secret
-- The `.vsix` package builds successfully via `vsce package`
-
-**What to do:**
-1. Verify local install: `code --install-extension aahp-orchestrator-0.2.0.vsix`
-2. Ensure T-008 (release workflow) is done, or publish manually with `vsce publish`
-3. Add marketplace publish step to release workflow if T-008 is done
-4. Requires `VSCE_PAT` secret to be set in GitHub repo settings
-
-**Files:**
-- `.github/workflows/release.yml` (if T-008 is done)
-- `package.json` (publisher field already set)
-
-**Definition of done:**
-- [ ] Extension visible on VS Code Marketplace
-- [ ] CHANGELOG.md exists (done - T-004)
-- [ ] Version tag pushed
-
----
 
 ### T-008: GitHub release workflow (tag-triggered) *(medium priority)*
 
@@ -50,6 +24,7 @@
 
 **Context:**
 - T-004 (CHANGELOG.md) is done - this task is unblocked
+- T-003 (Marketplace readiness) is done - publish script exists
 - Publish .vsix as a GitHub Release asset when `git tag v*` is pushed
 
 **What to do:**
@@ -166,11 +141,11 @@
 
 | Task | What Was Done | When |
 |------|--------------|------|
+| T-003: Publish to VS Code Marketplace | Extension icon, gallery metadata, publish script, .vscodeignore cleanup, CHANGELOG v0.3.0. Ready to publish with VSCE_PAT. | 2026-02-28 |
 | T-007: Agent retry on failure | Retry loop with exponential backoff (30s * 2^n), configurable max retries, dashboard retry button, 12 new tests (129 total) | 2026-02-28 |
 | T-006: Task creation from dashboard | "New Task" button + aahp.createTask command, prompts for title/priority/deps, writes to MANIFEST.json | 2026-02-27 |
 | T-005: All-repos open task view | Added "All Open Tasks" tree view to sidebar, 103 tests passing | 2026-02-27 |
 | T-004: CHANGELOG.md | Created CHANGELOG.md with v0.1.0 and v0.2.0 entries, vsce package passes | 2026-02-27 |
-| T-002: Automated tests | 72 Vitest unit tests across 5 suites (aahp-reader, agent-spawner, session-monitor, statusbar, security) | 2026-02-27 |
 
 ---
 
@@ -187,12 +162,15 @@
 | Sidebar dashboard | `src/sidebar.ts` |
 | Status bar | `src/statusbar.ts` |
 | Commands | `src/commands.ts` |
+| Task tree view | `src/task-tree.ts` |
 | Package config | `package.json` |
 | Build config | `tsconfig.json` |
 | Test config | `vitest.config.ts` |
 | Unit tests | `src/__tests__/*.test.ts` |
 | VS Code mocks | `src/__mocks__/vscode.ts` |
-| Packaged .vsix | `aahp-orchestrator-0.2.0.vsix` |
+| Extension icon | `assets/icon.png` |
+| Icon generator | `scripts/generate-icon.js` |
+| Packaged .vsix | `aahp-orchestrator-0.3.0.vsix` |
 | CI workflow | `.github/workflows/ci.yml` |
 | ESLint config | `.eslintrc.json` |
 
