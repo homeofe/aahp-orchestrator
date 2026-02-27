@@ -92,6 +92,18 @@
       {
         "command": "aahp.runAll",
         "title": "AAHP: Run All Agents"
+      },
+      {
+        "command": "aahp.runSingleRepo",
+        "title": "AAHP: Run Agent for Current Repo"
+      },
+      {
+        "command": "aahp.focusRepo",
+        "title": "AAHP: Focus Repo in Dashboard"
+      },
+      {
+        "command": "aahp.setTaskStatus",
+        "title": "AAHP: Set Task Status"
       }
     ],
     "viewsContainers": {
@@ -127,6 +139,11 @@
         "command": "aahp.runAll",
         "key": "ctrl+alt+r",
         "mac": "cmd+alt+r"
+      },
+      {
+        "command": "aahp.runSingleRepo",
+        "key": "ctrl+alt+s",
+        "mac": "cmd+alt+s"
       }
     ],
     "configuration": {

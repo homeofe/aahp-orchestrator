@@ -56,6 +56,92 @@ export interface AahpContext {
   handoffDir: string
 }
 
+// ── Repo Overview (multi-repo scanning) ──────────────────────────────────────
+
+export interface RepoOverview {
+  repoPath: string
+  repoName: string
+  manifest: AahpManifest
+  handoffDir: string
+  hasManifest: true
+  taskCounts: {
+    total: number
+    ready: number
+    inProgress: number
+    done: number
+    blocked: number
+    pending: number
+  }
+  lastActivity: string   // ISO timestamp from last_session.timestamp
+  health: 'healthy' | 'stale' | 'no-tasks'
+}
+
+/** Scan all subdirectories of rootDir for repos with AAHP manifests.
+ *  Returns an overview for every repo that has a manifest - regardless of task state.
+ *  Sorted: in_progress repos first, then ready, then alphabetical. */
+export function scanAllRepoOverviews(rootDir: string): RepoOverview[] {
+  const results: RepoOverview[] = []
+  if (!fs.existsSync(rootDir)) return results
+
+  let entries: fs.Dirent[]
+  try {
+    entries = fs.readdirSync(rootDir, { withFileTypes: true })
+  } catch {
+    return results
+  }
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue
+    const repoPath = path.join(rootDir, entry.name)
+    const handoffDir = path.join(repoPath, '.ai', 'handoff')
+    const manifestPath = path.join(handoffDir, 'MANIFEST.json')
+    if (!fs.existsSync(manifestPath)) continue
+
+    try {
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as AahpManifest
+      const tasks = manifest.tasks ?? {}
+      const taskEntries = Object.values(tasks)
+
+      const taskCounts = {
+        total: taskEntries.length,
+        ready: taskEntries.filter(t => t.status === 'ready').length,
+        inProgress: taskEntries.filter(t => t.status === 'in_progress').length,
+        done: taskEntries.filter(t => t.status === 'done').length,
+        blocked: taskEntries.filter(t => t.status === 'blocked').length,
+        pending: taskEntries.filter(t => t.status === 'pending').length,
+      }
+
+      const lastActivity = manifest.last_session?.timestamp ?? ''
+      const daysSinceActivity = lastActivity
+        ? (Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24)
+        : Infinity
+
+      let health: 'healthy' | 'stale' | 'no-tasks' = 'healthy'
+      if (taskCounts.total === 0) health = 'no-tasks'
+      else if (daysSinceActivity > 7) health = 'stale'
+
+      results.push({
+        repoPath,
+        repoName: entry.name,
+        manifest,
+        handoffDir,
+        hasManifest: true,
+        taskCounts,
+        lastActivity,
+        health,
+      })
+    } catch { /* skip malformed manifests */ }
+  }
+
+  return results.sort((a, b) => {
+    if (a.taskCounts.inProgress > 0 && b.taskCounts.inProgress === 0) return -1
+    if (b.taskCounts.inProgress > 0 && a.taskCounts.inProgress === 0) return 1
+    if (a.taskCounts.ready > 0 && b.taskCounts.ready === 0) return -1
+    if (b.taskCounts.ready > 0 && a.taskCounts.ready === 0) return 1
+    return a.repoName.localeCompare(b.repoName)
+  })
+}
+
 // ── Reader ────────────────────────────────────────────────────────────────────
 
 function findHandoffDir(workspaceRoot: string): string | undefined {
@@ -120,6 +206,21 @@ export function loadAahpContext(workspaceRoot: string): AahpContext | undefined 
   const manifest = parseManifest(handoffDir)
   if (!manifest) return undefined
 
+  return {
+    manifest,
+    handoffDir,
+    status: readFile(handoffDir, 'STATUS.md'),
+    nextActions: readFile(handoffDir, 'NEXT_ACTIONS.md'),
+    conventions: readFile(handoffDir, 'CONVENTIONS.md'),
+    trust: readFile(handoffDir, 'TRUST.md'),
+    workflowMd: readFile(handoffDir, 'WORKFLOW.md'),
+  }
+}
+
+/** Load AAHP context from an explicit handoff directory path (for multi-repo dashboard). */
+export function loadAahpContextByPath(handoffDir: string): AahpContext | undefined {
+  const manifest = parseManifest(handoffDir)
+  if (!manifest) return undefined
   return {
     manifest,
     handoffDir,

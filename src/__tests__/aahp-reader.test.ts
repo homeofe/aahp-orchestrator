@@ -9,6 +9,8 @@ import {
   getTopTask,
   buildSystemPrompt,
   loadAahpContext,
+  loadAahpContextByPath,
+  scanAllRepoOverviews,
   refreshManifestChecksums,
   saveManifest,
   getWorkspaceRoot,
@@ -350,5 +352,181 @@ describe('getWorkspaceRoot', () => {
       { uri: { fsPath: '/my/workspace' }, name: 'ws', index: 0 },
     ]
     expect(getWorkspaceRoot()).toBe('/my/workspace')
+  })
+})
+
+// ── scanAllRepoOverviews ──────────────────────────────────────────────────────
+
+describe('scanAllRepoOverviews', () => {
+  let tmpDir: string
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aahp-scan-'))
+  })
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  function createRepo(name: string, manifest: AahpManifest): void {
+    const handoff = path.join(tmpDir, name, '.ai', 'handoff')
+    fs.mkdirSync(handoff, { recursive: true })
+    fs.writeFileSync(path.join(handoff, 'MANIFEST.json'), JSON.stringify(manifest), 'utf8')
+  }
+
+  it('returns empty array for non-existent directory', () => {
+    expect(scanAllRepoOverviews('/non/existent/path')).toEqual([])
+  })
+
+  it('returns empty array when no repos have manifests', () => {
+    fs.mkdirSync(path.join(tmpDir, 'some-repo'))
+    expect(scanAllRepoOverviews(tmpDir)).toEqual([])
+  })
+
+  it('returns all repos with manifests', () => {
+    createRepo('repo-a', makeManifest({ project: 'repo-a' }))
+    createRepo('repo-b', makeManifest({ project: 'repo-b' }))
+    const results = scanAllRepoOverviews(tmpDir)
+    expect(results.length).toBe(2)
+  })
+
+  it('computes correct task counts', () => {
+    createRepo('repo-tasks', makeManifest({
+      project: 'repo-tasks',
+      tasks: {
+        'T-001': makeTask({ status: 'done' }),
+        'T-002': makeTask({ status: 'ready' }),
+        'T-003': makeTask({ status: 'in_progress' }),
+        'T-004': makeTask({ status: 'blocked' }),
+        'T-005': makeTask({ status: 'pending' }),
+      },
+    }))
+
+    const results = scanAllRepoOverviews(tmpDir)
+    expect(results.length).toBe(1)
+    const counts = results[0]!.taskCounts
+    expect(counts.total).toBe(5)
+    expect(counts.done).toBe(1)
+    expect(counts.ready).toBe(1)
+    expect(counts.inProgress).toBe(1)
+    expect(counts.blocked).toBe(1)
+    expect(counts.pending).toBe(1)
+  })
+
+  it('sets health to healthy for recent activity', () => {
+    createRepo('recent', makeManifest({
+      project: 'recent',
+      last_session: {
+        agent: 'claude-code',
+        timestamp: new Date().toISOString(),
+        commit: 'abc',
+        phase: 'implementation',
+        duration_minutes: 5,
+      },
+      tasks: { 'T-001': makeTask() },
+    }))
+
+    const results = scanAllRepoOverviews(tmpDir)
+    expect(results[0]!.health).toBe('healthy')
+  })
+
+  it('sets health to stale for old activity', () => {
+    const oldDate = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+    createRepo('old', makeManifest({
+      project: 'old',
+      last_session: {
+        agent: 'claude-code',
+        timestamp: oldDate,
+        commit: 'abc',
+        phase: 'implementation',
+        duration_minutes: 5,
+      },
+      tasks: { 'T-001': makeTask() },
+    }))
+
+    const results = scanAllRepoOverviews(tmpDir)
+    expect(results[0]!.health).toBe('stale')
+  })
+
+  it('sets health to no-tasks when tasks object is empty', () => {
+    createRepo('empty-tasks', makeManifest({ project: 'empty-tasks', tasks: {} }))
+    const results = scanAllRepoOverviews(tmpDir)
+    expect(results[0]!.health).toBe('no-tasks')
+  })
+
+  it('sorts repos: in_progress first, then ready, then alphabetical', () => {
+    createRepo('z-repo', makeManifest({
+      project: 'z-repo',
+      tasks: { 'T-001': makeTask({ status: 'ready' }) },
+    }))
+    createRepo('a-repo', makeManifest({
+      project: 'a-repo',
+      tasks: { 'T-001': makeTask({ status: 'done' }) },
+    }))
+    createRepo('m-repo', makeManifest({
+      project: 'm-repo',
+      tasks: { 'T-001': makeTask({ status: 'in_progress' }) },
+    }))
+
+    const results = scanAllRepoOverviews(tmpDir)
+    expect(results.map(r => r.repoName)).toEqual(['m-repo', 'z-repo', 'a-repo'])
+  })
+
+  it('skips directories without manifest', () => {
+    createRepo('has-manifest', makeManifest({ project: 'has-manifest' }))
+    fs.mkdirSync(path.join(tmpDir, 'no-manifest'))
+    const results = scanAllRepoOverviews(tmpDir)
+    expect(results.length).toBe(1)
+    expect(results[0]!.repoName).toBe('has-manifest')
+  })
+
+  it('skips malformed manifests', () => {
+    const handoff = path.join(tmpDir, 'bad-repo', '.ai', 'handoff')
+    fs.mkdirSync(handoff, { recursive: true })
+    fs.writeFileSync(path.join(handoff, 'MANIFEST.json'), '{invalid', 'utf8')
+    expect(scanAllRepoOverviews(tmpDir)).toEqual([])
+  })
+})
+
+// ── loadAahpContextByPath ─────────────────────────────────────────────────────
+
+describe('loadAahpContextByPath', () => {
+  let tmpDir: string
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aahp-bypath-'))
+  })
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it('loads context from explicit handoff directory', () => {
+    fs.writeFileSync(path.join(tmpDir, 'MANIFEST.json'), JSON.stringify(makeManifest()), 'utf8')
+    const result = loadAahpContextByPath(tmpDir)
+    expect(result).toBeDefined()
+    expect(result!.manifest.project).toBe('test-project')
+    expect(result!.handoffDir).toBe(tmpDir)
+  })
+
+  it('returns undefined for non-existent directory', () => {
+    expect(loadAahpContextByPath('/non/existent')).toBeUndefined()
+  })
+
+  it('returns undefined for malformed manifest', () => {
+    fs.writeFileSync(path.join(tmpDir, 'MANIFEST.json'), 'not-json', 'utf8')
+    expect(loadAahpContextByPath(tmpDir)).toBeUndefined()
+  })
+
+  it('reads optional files (STATUS.md etc.)', () => {
+    fs.writeFileSync(path.join(tmpDir, 'MANIFEST.json'), JSON.stringify(makeManifest()), 'utf8')
+    fs.writeFileSync(path.join(tmpDir, 'STATUS.md'), '# Status', 'utf8')
+    fs.writeFileSync(path.join(tmpDir, 'NEXT_ACTIONS.md'), '# Next', 'utf8')
+
+    const result = loadAahpContextByPath(tmpDir)
+    expect(result).toBeDefined()
+    expect(result!.status).toBe('# Status')
+    expect(result!.nextActions).toBe('# Next')
+    expect(result!.conventions).toBeUndefined()
   })
 })

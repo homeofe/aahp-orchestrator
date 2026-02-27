@@ -1,14 +1,16 @@
 import * as vscode from 'vscode'
+import * as fs from 'fs'
 import * as path from 'path'
 import {
   AahpContext,
-  loadAahpContext,
+  loadAahpContextByPath,
   refreshManifestChecksums,
   saveManifest,
   getWorkspaceRoot,
 } from './aahp-reader'
 import { scanAllRepos, spawnAllAgents, getDevRoot, AgentRun } from './agent-spawner'
 import { SessionMonitor } from './session-monitor'
+import { AahpDashboardProvider } from './sidebar'
 const PHASES = ['research', 'architecture', 'implementation', 'review', 'fix', 'release']
 
 export function registerCommands(
@@ -16,7 +18,8 @@ export function registerCommands(
   getCtx: () => AahpContext | undefined,
   reloadCtx: () => void,
   onAgentRuns?: (runs: AgentRun[]) => void,
-  monitor?: SessionMonitor
+  monitor?: SessionMonitor,
+  dashboardProvider?: AahpDashboardProvider
 ): vscode.Disposable[] {
   return [
 
@@ -143,6 +146,77 @@ export function registerCommands(
         )
         reloadCtx()
       })
+    }),
+
+    // ── Focus Repo in Dashboard ────────────────────────────────────────────────
+    vscode.commands.registerCommand('aahp.focusRepo', (repoPath: string) => {
+      if (!repoPath || !dashboardProvider) return
+      const handoffDir = path.join(repoPath, '.ai', 'handoff')
+      const ctx = loadAahpContextByPath(handoffDir)
+      dashboardProvider.updateFocusedRepo(repoPath, ctx)
+    }),
+
+    // ── Run Single Repo Agent ──────────────────────────────────────────────────
+    vscode.commands.registerCommand('aahp.runSingleRepo', async (repoPath: string) => {
+      const devRoot = getDevRoot()
+      if (!devRoot) { vscode.window.showWarningMessage('AAHP: No root path configured.'); return }
+      if (!repoPath) { vscode.window.showWarningMessage('AAHP: No repo selected.'); return }
+
+      const repos = scanAllRepos(devRoot).filter(r => r.repoPath === repoPath)
+      if (repos.length === 0) {
+        vscode.window.showWarningMessage('AAHP: No ready tasks in this repo.')
+        return
+      }
+
+      const repo = repos[0]!
+      const confirm = await vscode.window.showInformationMessage(
+        `AAHP: Spawn agent for ${repo.repoName} - [${repo.taskId}] ${repo.taskTitle}?`,
+        { modal: true },
+        'Run Agent'
+      )
+      if (confirm !== 'Run Agent') return
+
+      vscode.window.showInformationMessage(`AAHP: Spawning agent for ${repo.repoName}...`)
+
+      spawnAllAgents([repo], runs => {
+        onAgentRuns?.(runs)
+      }, monitor, 1).then(finalRuns => {
+        const r = finalRuns[0]
+        if (r) {
+          vscode.window.showInformationMessage(
+            r.committed
+              ? `AAHP: ${repo.repoName} [${repo.taskId}] committed.`
+              : `AAHP: ${repo.repoName} agent finished - review output.`
+          )
+        }
+        reloadCtx()
+      })
+    }),
+
+    // ── Set Task Status ────────────────────────────────────────────────────────
+    vscode.commands.registerCommand('aahp.setTaskStatus', async (
+      repoPath: string,
+      taskId: string,
+      newStatus: string
+    ) => {
+      if (!repoPath || !taskId || !newStatus) return
+      const manifestPath = path.join(repoPath, '.ai', 'handoff', 'MANIFEST.json')
+
+      try {
+        const raw = fs.readFileSync(manifestPath, 'utf8')
+        const manifest = JSON.parse(raw)
+        if (manifest.tasks?.[taskId]) {
+          manifest.tasks[taskId].status = newStatus
+          if (newStatus === 'done') {
+            manifest.tasks[taskId].completed = new Date().toISOString()
+          }
+          fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8')
+          reloadCtx()
+          vscode.window.showInformationMessage(`AAHP: ${taskId} -> ${newStatus}`)
+        }
+      } catch (err) {
+        vscode.window.showWarningMessage(`AAHP: Failed to update task - ${String(err)}`)
+      }
     }),
   ]
 }

@@ -1,12 +1,12 @@
 import * as vscode from 'vscode'
 import * as path from 'path'
-import { loadAahpContext, getWorkspaceRoot, AahpContext } from './aahp-reader'
+import { loadAahpContext, getWorkspaceRoot, AahpContext, scanAllRepoOverviews } from './aahp-reader'
 import { createStatusBar, updateStatusBar } from './statusbar'
 import { registerChatParticipant } from './chat-participant'
 import { registerContextInjector } from './context-injector'
 import { AahpDashboardProvider } from './sidebar'
 import { registerCommands } from './commands'
-import { AgentRun } from './agent-spawner'
+import { AgentRun, getDevRoot } from './agent-spawner'
 import { SessionMonitor } from './session-monitor'
 
 // ── Shared state ──────────────────────────────────────────────────────────────
@@ -79,6 +79,19 @@ export function activate(context: vscode.ExtensionContext): void {
     reloadContext()
     updateStatusBar(statusBar, currentCtx)
     dashboardProvider.update(currentCtx)
+
+    // Multi-repo overview scan
+    const devRoot = getDevRoot()
+    if (devRoot) {
+      const overviews = scanAllRepoOverviews(devRoot)
+      dashboardProvider.updateRepoOverviews(overviews)
+    }
+
+    // Auto-focus based on active editor context
+    if (currentCtx) {
+      const repoRoot = path.dirname(path.dirname(currentCtx.handoffDir))
+      dashboardProvider.updateFocusedRepo(repoRoot, currentCtx)
+    }
   }
 
   // ── One-time development-root prompt ─────────────────────────────────────────
@@ -100,10 +113,17 @@ export function activate(context: vscode.ExtensionContext): void {
   const monitor = new SessionMonitor(context)
   monitor.clearStaleSessions()
 
+  // ── Session monitor live updates ────────────────────────────────────────────
+  monitor.onChange(() => {
+    const sessions = monitor.getActiveSessions()
+    const queue = monitor.getQueue()
+    dashboardProvider.updateSessionState(sessions, queue)
+  })
+
   // ── Commands ────────────────────────────────────────────────────────────────
   for (const d of registerCommands(context, getCtx, refreshAll, (runs: AgentRun[]) => {
     dashboardProvider.updateAgentRuns(runs)
-  }, monitor)) {
+  }, monitor, dashboardProvider)) {
     context.subscriptions.push(d)
   }
 
