@@ -99,18 +99,41 @@ export function registerCommands(
         return
       }
 
+      const config = vscode.workspace.getConfiguration('aahp')
+      const limit: number = config.get('agentConcurrencyLimit', 0)
+      const limitLabel = limit > 0 ? `, max ${limit} at a time` : ', all in parallel'
+
       const confirm = await vscode.window.showInformationMessage(
-        `AAHP: Spawn ${repos.length} Claude agents in parallel?\n\n${repos.map(r => `• ${r.repoName} → [${r.taskId}] ${r.taskTitle}`).join('\n')}`,
+        `AAHP: Spawn ${repos.length} agents${limitLabel}?\n\n${repos.map(r => `• ${r.repoName} → [${r.taskId}] ${r.taskTitle}`).join('\n')}`,
         { modal: true },
-        'Run All Agents'
+        'Run All Agents',
+        'Change Limit…'
       )
+
+      if (confirm === 'Change Limit…') {
+        const entered = await vscode.window.showInputBox({
+          title: 'AAHP: Agent Concurrency Limit',
+          prompt: 'Max agents to run in parallel (0 = unlimited)',
+          value: String(limit),
+          placeHolder: '0',
+          validateInput: v => isNaN(Number(v)) || Number(v) < 0 ? 'Enter a number ≥ 0' : undefined,
+        })
+        if (entered === undefined) return
+        const newLimit = parseInt(entered, 10) || 0
+        await config.update('agentConcurrencyLimit', newLimit, vscode.ConfigurationTarget.Workspace)
+        // Re-run with new limit
+        vscode.commands.executeCommand('aahp.runAll')
+        return
+      }
+
       if (confirm !== 'Run All Agents') return
 
-      vscode.window.showInformationMessage(`🤖 AAHP: Spawning ${repos.length} agents - check Output channels per repo`)
+      const limitMsg = limit > 0 ? ` (${limit} at a time)` : ''
+      vscode.window.showInformationMessage(`🤖 AAHP: Spawning ${repos.length} agents${limitMsg} — check Output channels per repo`)
 
       spawnAllAgents(repos, runs => {
         onAgentRuns?.(runs)
-      }).then(finalRuns => {
+      }, undefined, limit).then(finalRuns => {
         const done = finalRuns.filter(r => r.committed).length
         const failed = finalRuns.filter(r => r.status === 'failed').length
         vscode.window.showInformationMessage(

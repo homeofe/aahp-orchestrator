@@ -2,6 +2,7 @@ import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
 import { spawn, spawnSync } from 'child_process'
+import { SessionMonitor, QueuedTask } from './session-monitor'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -447,16 +448,52 @@ async function runCopilot(
 
 // ── Orchestrator ──────────────────────────────────────────────────────────────
 
-/** Spawn one agent per repo, all in parallel. Auto-selects Claude or Copilot per task. */
+/** Spawn one agent per repo, all in parallel. Auto-selects Claude or Copilot per task.
+ *  If a repo already has an active session (tracked via SessionMonitor), the task is
+ *  queued instead of spawned — so ongoing work is never interrupted.
+ */
 export async function spawnAllAgents(
   repos: RepoTask[],
-  onUpdate: (runs: AgentRun[]) => void
+  onUpdate: (runs: AgentRun[]) => void,
+  monitor?: SessionMonitor,
+  maxConcurrent = 0
 ): Promise<AgentRun[]> {
   // B-7: Reset session token counters at the start of each orchestration run
   sessionTokens.claude = { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
   sessionTokens.copilot = { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
 
-  const runs: AgentRun[] = repos.map(repo => ({
+  // Separate repos into: spawn now vs queue (already has an active session)
+  const toSpawn: RepoTask[] = []
+  const toQueue: RepoTask[] = []
+
+  for (const repo of repos) {
+    if (monitor?.isRepoActive(repo.repoPath)) {
+      toQueue.push(repo)
+    } else {
+      toSpawn.push(repo)
+    }
+  }
+
+  // Enqueue tasks for repos that are already busy
+  for (const repo of toQueue) {
+    await monitor?.enqueue({
+      repoPath: repo.repoPath,
+      repoName: repo.repoName,
+      taskId: repo.taskId,
+      taskTitle: repo.taskTitle,
+      queuedAt: new Date().toISOString(),
+    })
+    vscode.window.showInformationMessage(
+      `AAHP: ${repo.repoName} is already active — task [${repo.taskId}] queued.`
+    )
+  }
+
+  if (toSpawn.length === 0) {
+    vscode.window.showInformationMessage('AAHP: All selected repos are currently active. Tasks have been queued.')
+    return []
+  }
+
+  const runs: AgentRun[] = toSpawn.map(repo => ({
     repo,
     status: 'queued' as AgentStatus,
     backend: pickBackend(repo),
@@ -473,6 +510,16 @@ export async function spawnAllAgents(
     run.status = 'running'
     run.startedAt = new Date()
     onUpdate([...runs])
+
+    // Register with monitor so other spawns know this repo is busy
+    await monitor?.registerSession({
+      repoPath: run.repo.repoPath,
+      repoName: run.repo.repoName,
+      taskId: run.repo.taskId,
+      taskTitle: run.repo.taskTitle,
+      backend: run.backend,
+      startedAt: run.startedAt.toISOString(),
+    })
 
     channel.appendLine(`AAHP Agent - ${run.repo.repoName}`)
     channel.appendLine(`Backend: ${backendLabel} (priority: ${run.repo.taskPriority})`)
@@ -505,11 +552,60 @@ export async function spawnAllAgents(
       channel.appendLine(`Agent error: ${String(err)}`)
     }
 
+    // Deregister session and drain queue for this repo
+    await monitor?.deregisterSession(run.repo.repoPath)
+    await monitor?.drainQueue(run.repo.repoPath, async (queued: QueuedTask) => {
+      const queuedRepo: RepoTask = {
+        repoPath: queued.repoPath,
+        repoName: queued.repoName,
+        manifestPath: path.join(queued.repoPath, '.ai', 'handoff', 'MANIFEST.json'),
+        taskId: queued.taskId,
+        taskTitle: queued.taskTitle,
+        taskPriority: 'medium',
+        phase: 'queued',
+        quickContext: '',
+      }
+      await spawnAllAgents([queuedRepo], onUpdate, monitor, maxConcurrent)
+    })
+
     onUpdate([...runs])
   }
 
-  await Promise.all(runs.map(run => runSingleAgent(run)))
+  await runWithConcurrencyLimit(runs, maxConcurrent, runSingleAgent)
   return runs
+}
+
+// ── Concurrency limiter ───────────────────────────────────────────────────────
+
+/**
+ * Sliding-window semaphore. maxConcurrent=0 means unlimited (all in parallel).
+ * Example: 9 repos, maxConcurrent=3 → first 3 start immediately, each new slot
+ * opens as soon as one finishes — never more than 3 running at the same time.
+ */
+async function runWithConcurrencyLimit(
+  runs: AgentRun[],
+  maxConcurrent: number,
+  runFn: (run: AgentRun) => Promise<void>
+): Promise<void> {
+  if (maxConcurrent <= 0 || maxConcurrent >= runs.length) {
+    await Promise.all(runs.map(runFn))
+    return
+  }
+
+  const queue = [...runs]
+  let active = 0
+
+  await new Promise<void>((resolve, reject) => {
+    const next = () => {
+      if (queue.length === 0 && active === 0) { resolve(); return }
+      while (active < maxConcurrent && queue.length > 0) {
+        const run = queue.shift()!
+        active++
+        runFn(run).then(() => { active--; next() }).catch(() => { active--; next() })
+      }
+    }
+    next()
+  })
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

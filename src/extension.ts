@@ -7,6 +7,7 @@ import { registerContextInjector } from './context-injector'
 import { AahpDashboardProvider } from './sidebar'
 import { registerCommands } from './commands'
 import { AgentRun } from './agent-spawner'
+import { SessionMonitor } from './session-monitor'
 
 // ── Shared state ──────────────────────────────────────────────────────────────
 

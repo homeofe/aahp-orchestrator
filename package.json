@@ -151,6 +151,13 @@
           ],
           "markdownDescription": "Which AI backend to use when spawning agents via **Run All Agents**. `auto` uses Claude for heavy tasks and Copilot for routine ones.",
           "scope": "window"
+        },
+        "aahp.agentConcurrencyLimit": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "markdownDescription": "Maximum number of agents to run **in parallel** when using Run All Agents. `0` = unlimited (all at once). Set to e.g. `3` or `5` to cap token spend and avoid overloading your API quota.",
+          "scope": "window"
         }
       }
     }
