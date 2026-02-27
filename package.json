@@ -1,13 +1,13 @@
-{
+﻿{
   "name": "aahp-orchestrator",
   "displayName": "AAHP Orchestrator",
   "description": "Orchestrate GitHub Copilot and Claude Code with AAHP v3 context - zero questions, full context.",
   "version": "0.2.0",
-  "publisher": "homeofe",
+  "publisher": "elvatis",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/homeofe/aahp-orchestrator.git"
+    "url": "https://github.com/elvatis/aahp-orchestrator.git"
   },
   "engines": {
     "vscode": "^1.90.0"

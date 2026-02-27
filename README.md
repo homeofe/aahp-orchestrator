@@ -1,9 +1,9 @@
-# AAHP Orchestrator
+﻿# AAHP Orchestrator
 
 > VS Code extension - orchestrate GitHub Copilot and Claude Code with AAHP v3 context. Zero questions. Full context. Both agents know what to do.
 
 [![VS Code](https://img.shields.io/badge/VS%20Code-%5E1.90-blue)](https://code.visualstudio.com/)
-[![AAHP v3](https://img.shields.io/badge/AAHP-v3-green)](https://github.com/homeofe/AAHP)
+[![AAHP v3](https://img.shields.io/badge/AAHP-v3-green)](https://github.com/elvatis/AAHP)
 
 ## The AAHP Toolchain
 
@@ -12,7 +12,7 @@
 | Package | What it does | When to use |
 |---------|-------------|-------------|
 | **aahp-orchestrator** ← you are here | VS Code extension. Injects AAHP context into Copilot/Claude Code while *you* code. Live status bar, `@aahp` chat, sidebar dashboard. | Every coding session - your human-in-the-loop assistant. |
-| **[aahp-runner](https://github.com/homeofe/aahp-runner)** | Autonomous CLI. Spawns Claude agents that implement tasks, run tests, and commit - no human input needed. Schedulable. | Overnight / CI - your unattended worker. |
+| **[aahp-runner](https://github.com/elvatis/aahp-runner)** | Autonomous CLI. Spawns Claude agents that implement tasks, run tests, and commit - no human input needed. Schedulable. | Overnight / CI - your unattended worker. |
 
 Together they cover the full AAHP loop: you plan and guide during the day → the runner works through tasks at night → you wake up to committed progress.
 
@@ -59,7 +59,7 @@ When you open a workspace with `.ai/handoff/MANIFEST.json`:
 ## Requirements
 
 - VS Code ≥ 1.90
-- A workspace with `.ai/handoff/MANIFEST.json` ([AAHP v3 spec](https://github.com/homeofe/AAHP))
+- A workspace with `.ai/handoff/MANIFEST.json` ([AAHP v3 spec](https://github.com/elvatis/AAHP))
 - GitHub Copilot (for `@aahp` chat responses via LM API)
 
 ---
@@ -104,4 +104,4 @@ This extension reads the following files from `.ai/handoff/`:
 
 ## License
 
-MIT © [homeofe](https://github.com/homeofe)
+MIT © [elvatis](https://github.com/elvatis)

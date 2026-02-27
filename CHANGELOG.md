@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to the **AAHP Orchestrator** VS Code extension will be documented in this file.
 
@@ -76,6 +76,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Removed em dashes from all source files and documentation (style convention)
 
-[unreleased]: https://github.com/homeofe/aahp-orchestrator/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/homeofe/aahp-orchestrator/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/homeofe/aahp-orchestrator/releases/tag/v0.1.0
+[unreleased]: https://github.com/elvatis/aahp-orchestrator/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/elvatis/aahp-orchestrator/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/elvatis/aahp-orchestrator/releases/tag/v0.1.0
