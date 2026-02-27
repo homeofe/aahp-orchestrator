@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { AahpContext, AahpTask, RepoOverview, getTopTask } from './aahp-reader'
+import { AahpContext, AahpTask, NextActionItem, RepoOverview, getTopTask } from './aahp-reader'
 import { AgentRun, sessionTokens } from './agent-spawner'
 import { ActiveSession, QueuedTask } from './session-monitor'
 
@@ -92,6 +92,9 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
         case 'createTask':
           vscode.commands.executeCommand('aahp.createTask', msg.repoPath)
           break
+        case 'refreshNextActions':
+          vscode.commands.executeCommand('aahp.refreshAll')
+          break
       }
     })
   }
@@ -111,6 +114,7 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
 <body>
   ${this._renderAgentControl()}
   ${this._renderRepoGrid()}
+  ${this._renderNextSteps()}
   ${this._renderFocusedProject()}
   ${this._renderQuickActions()}
 <script nonce="${nonce}">${this._renderScript()}</script>
@@ -322,6 +326,40 @@ body {
   text-align: center;
 }
 h2 { font-size: 14px; margin: 0 0 4px; }
+
+/* Next Steps */
+.ns-repo { margin-bottom: 8px; }
+.ns-repo-header {
+  font-weight: bold;
+  font-size: 12px;
+  margin-bottom: 3px;
+  cursor: pointer;
+}
+.ns-repo-header:hover { opacity: 0.8; }
+.ns-item {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 12px;
+  padding: 2px 0 2px 8px;
+  border-left: 2px solid transparent;
+}
+.ns-item.ns-ready { border-left-color: #4ec9b0; }
+.ns-item.ns-in_progress { border-left-color: #569cd6; }
+.ns-item.ns-blocked { border-left-color: #f14c4c; }
+.ns-item.ns-done { border-left-color: #808080; opacity: 0.5; }
+.ns-detail {
+  font-size: 10px;
+  opacity: 0.5;
+  padding-left: 10px;
+  margin-bottom: 2px;
+}
+.ns-more {
+  font-size: 10px;
+  opacity: 0.4;
+  padding-left: 10px;
+  cursor: pointer;
+}
 `
   }
 
@@ -461,6 +499,81 @@ h2 { font-size: 14px; margin: 0 0 4px; }
     }
 
     html += `</div>`
+    return html
+  }
+
+  // ── Section: Next Steps (from NEXT_ACTIONS.md) ─────────────────────────────────
+
+  private _renderNextSteps(): string {
+    const overviews = this._repoOverviews
+    if (overviews.length === 0) return ''
+
+    // Collect actionable items (ready, in_progress, blocked) per repo
+    const reposWithActions: Array<{ repo: RepoOverview; actionable: NextActionItem[] }> = []
+    let totalActionable = 0
+
+    for (const repo of overviews) {
+      const actionable = repo.nextActions.filter(
+        item => item.section === 'ready' || item.section === 'in_progress' || item.section === 'blocked'
+      )
+      if (actionable.length > 0) {
+        // Sort: in_progress first, then ready, then blocked
+        const sectionOrder: Record<string, number> = { in_progress: 0, ready: 1, blocked: 2 }
+        const priOrder: Record<string, number> = { high: 0, medium: 1, low: 2 }
+        actionable.sort((a, b) => {
+          const sa = sectionOrder[a.section] ?? 9
+          const sb = sectionOrder[b.section] ?? 9
+          if (sa !== sb) return sa - sb
+          const pa = priOrder[a.priority ?? 'medium'] ?? 9
+          const pb = priOrder[b.priority ?? 'medium'] ?? 9
+          return pa - pb
+        })
+        reposWithActions.push({ repo, actionable })
+        totalActionable += actionable.length
+      }
+    }
+
+    if (totalActionable === 0) return ''
+
+    const isCollapsed = this._collapsedSections.has('nextsteps')
+    let html = `<div class="section-header${isCollapsed ? ' collapsed' : ''}" data-cmd="toggleSection" data-section="nextsteps">
+      <span>Next Steps (${totalActionable})</span>
+      <span style="display:flex;align-items:center;gap:4px">
+        <button class="btn btn-secondary" style="font-size:9px;padding:1px 6px;text-transform:none;letter-spacing:0" data-cmd="refreshNextActions">Refresh</button>
+        <span class="chevron">&#9660;</span>
+      </span>
+    </div>`
+
+    if (isCollapsed) return html
+
+    for (const { repo, actionable } of reposWithActions) {
+      html += `<div class="ns-repo">`
+      html += `<div class="ns-repo-header" data-cmd="focusRepo" data-repo-path="${escHtml(repo.repoPath)}"><span class="dot dot-${repo.health}"></span>${escHtml(repo.repoName)}</div>`
+
+      const shown = actionable.slice(0, 3)
+      const remaining = actionable.length - shown.length
+
+      for (const item of shown) {
+        const idLabel = item.taskId ? `<span class="task-id">[${escHtml(item.taskId)}]</span> ` : ''
+        const priClass = item.priority === 'high' ? 'pri-high' : item.priority === 'low' ? 'pri-low' : ''
+        const priLabel = item.priority ? `<span class="${priClass}" style="font-size:10px">${escHtml(item.priority)}</span>` : ''
+
+        html += `<div class="ns-item ns-${item.section}">
+          ${idLabel}<span>${escHtml(item.title)}</span>${priLabel}
+        </div>`
+
+        if (item.detail) {
+          html += `<div class="ns-detail">${escHtml(item.detail)}</div>`
+        }
+      }
+
+      if (remaining > 0) {
+        html += `<div class="ns-more" data-cmd="focusRepo" data-repo-path="${escHtml(repo.repoPath)}">${remaining} more...</div>`
+      }
+
+      html += `</div>`
+    }
+
     return html
   }
 

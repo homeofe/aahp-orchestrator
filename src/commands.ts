@@ -289,6 +289,12 @@ export function registerCommands(
       })
     }),
 
+    // ── Refresh All (re-scan repos and NEXT_ACTIONS.md) ───────────────────────
+    vscode.commands.registerCommand('aahp.refreshAll', () => {
+      reloadCtx()
+      vscode.window.showInformationMessage('AAHP: Dashboard refreshed')
+    }),
+
     // ── Create Task ──────────────────────────────────────────────────────────────
     vscode.commands.registerCommand('aahp.createTask', async (repoPath?: string) => {
       // Determine which repo to create the task in

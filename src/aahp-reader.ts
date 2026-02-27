@@ -56,6 +56,122 @@ export interface AahpContext {
   handoffDir: string
 }
 
+// ── Next Actions (parsed from NEXT_ACTIONS.md) ──────────────────────────────
+
+export interface NextActionItem {
+  section: 'ready' | 'in_progress' | 'blocked' | 'done' | 'unknown'
+  taskId?: string
+  title: string
+  detail?: string
+  priority?: string
+}
+
+/** Parse a NEXT_ACTIONS.md file into structured items.
+ *  Handles multiple formats: AAHP template, checklist, numbered list, phase-based. */
+export function parseNextActions(markdown: string): NextActionItem[] {
+  if (!markdown?.trim()) return []
+
+  const mdLines = markdown.split('\n')
+  const items: NextActionItem[] = []
+  let currentSection: NextActionItem['section'] = 'unknown'
+
+  for (let i = 0; i < mdLines.length; i++) {
+    const currentLine = mdLines[i]
+    if (!currentLine) continue
+    const trimmed = currentLine.trim()
+
+    // Detect section headers (## or ### level)
+    const sectionMatch = trimmed.match(/^#{1,3}\s+(.+)/)
+    if (sectionMatch && sectionMatch[1]) {
+      const heading = sectionMatch[1].toLowerCase()
+      // Strip emoji and non-ASCII prefixes for matching
+      // eslint-disable-next-line no-control-regex
+      const cleaned = heading.replace(/[^\x20-\x7E]/g, '').trim()
+
+      if (/ready|work these next|next steps|open tasks?/i.test(cleaned)) {
+        currentSection = 'ready'
+      } else if (/in.?progress|active|running|current/i.test(cleaned)) {
+        currentSection = 'in_progress'
+      } else if (/blocked|cannot start/i.test(cleaned)) {
+        currentSection = 'blocked'
+      } else if (/done|completed|recently completed/i.test(cleaned)) {
+        currentSection = 'done'
+      }
+
+      // Check if heading is a task: ### T-NNN: Title or ### Title *(priority)*
+      const taskHeading = trimmed.match(/^###\s+(?:~~)?(?:(T-\d+)[:\s]+)?(.+?)(?:~~)?(?:\s*\*\((high|medium|low)\s*priority\)\*)?$/)
+      if (taskHeading && taskHeading[2]) {
+        const rawTitle = taskHeading[2].replace(/\*+/g, '').trim()
+        if (rawTitle && !/^(ready|blocked|done|in.?progress|recently completed|status summary|reference|open tasks?)$/i.test(rawTitle)) {
+          const isStrikethrough = trimmed.includes('~~')
+          const itemSection = isStrikethrough ? 'done' : currentSection
+
+          let detail: string | undefined
+          for (let j = i + 1; j < Math.min(i + 6, mdLines.length); j++) {
+            const lookLine = mdLines[j]
+            if (!lookLine) continue
+            const goalMatch = lookLine.match(/^\*\*Goal:\*\*\s*(.+)/)
+            if (goalMatch && goalMatch[1]) {
+              detail = goalMatch[1].trim().slice(0, 120)
+              break
+            }
+          }
+
+          let priority = taskHeading[3]
+          if (!priority) {
+            const priMatch = trimmed.match(/\*\(?(high|medium|low)\s*priority\)?\*/i)
+            if (priMatch && priMatch[1]) priority = priMatch[1].toLowerCase()
+          }
+
+          const item: NextActionItem = { section: itemSection, title: rawTitle }
+          if (taskHeading[1]) item.taskId = taskHeading[1]
+          if (detail) item.detail = detail
+          if (priority) item.priority = priority
+          items.push(item)
+        }
+      }
+      continue
+    }
+
+    // Checkbox items: - [ ] text / - [x] text
+    const checkMatch = trimmed.match(/^-\s+\[([ xX])\]\s+(.+)/)
+    if (checkMatch && checkMatch[1] && checkMatch[2]) {
+      const isDone = checkMatch[1].toLowerCase() === 'x'
+      const rawTitle = checkMatch[2].replace(/\*+/g, '').trim()
+      const priMatch = rawTitle.match(/\(?(high|medium|low)\s*priority\)?/i)
+      const item: NextActionItem = {
+        section: isDone ? 'done' : currentSection,
+        title: rawTitle.replace(/\(?(high|medium|low)\s*priority\)?/i, '').trim(),
+      }
+      if (priMatch && priMatch[1]) item.priority = priMatch[1].toLowerCase()
+      items.push(item)
+      continue
+    }
+
+    // Numbered list items (only in a known section, skip instruction steps)
+    if (currentSection !== 'unknown') {
+      const numMatch = trimmed.match(/^\d+\.\s+(.+)/)
+      if (numMatch && numMatch[1]) {
+        const rawTitle = numMatch[1].replace(/\*+/g, '').trim()
+        if (rawTitle.length > 5 && rawTitle.length < 200 && !/^(add|create|run|install|update|verify|test|check|open|set|write|read|import|export|mock|show|use)\s/i.test(rawTitle)) {
+          const isDone = /~~.+~~/.test(rawTitle) || /\bDONE\b/i.test(rawTitle)
+          const priMatch = rawTitle.match(/\(?(high|medium|low)\s*priority\)?/i)
+          const taskIdMatch = rawTitle.match(/(T-\d+)/)
+          const item: NextActionItem = {
+            section: isDone ? 'done' : currentSection,
+            title: rawTitle.replace(/~~(.+)~~/, '$1').replace(/\s*-\s*DONE.*$/i, '').replace(/\(?(high|medium|low)\s*priority\)?/i, '').trim(),
+          }
+          if (taskIdMatch && taskIdMatch[1]) item.taskId = taskIdMatch[1]
+          if (priMatch && priMatch[1]) item.priority = priMatch[1].toLowerCase()
+          items.push(item)
+        }
+      }
+    }
+  }
+
+  return items
+}
+
 // ── Repo Overview (multi-repo scanning) ──────────────────────────────────────
 
 export interface RepoOverview {
@@ -74,6 +190,7 @@ export interface RepoOverview {
   }
   lastActivity: string   // ISO timestamp from last_session.timestamp
   health: 'healthy' | 'stale' | 'no-tasks'
+  nextActions: NextActionItem[]
 }
 
 /** Scan all subdirectories of rootDir for repos with AAHP manifests.
@@ -120,6 +237,10 @@ export function scanAllRepoOverviews(rootDir: string): RepoOverview[] {
       if (taskCounts.total === 0) health = 'no-tasks'
       else if (daysSinceActivity > 7) health = 'stale'
 
+      // Parse NEXT_ACTIONS.md for structured next-step items
+      const nextActionsMd = readFile(handoffDir, 'NEXT_ACTIONS.md')
+      const nextActions = nextActionsMd ? parseNextActions(nextActionsMd) : []
+
       results.push({
         repoPath,
         repoName: entry.name,
@@ -129,6 +250,7 @@ export function scanAllRepoOverviews(rootDir: string): RepoOverview[] {
         taskCounts,
         lastActivity,
         health,
+        nextActions,
       })
     } catch { /* skip malformed manifests */ }
   }
@@ -170,10 +292,10 @@ function findHandoffDir(workspaceRoot: string): string | undefined {
   // 3. Scan immediate subdirectories - only if developmentRoot is true OR rootOverride is set
   if (isDevelopmentRoot || rootOverride.trim()) {
     try {
-      const entries = fs.readdirSync(scanRoot, { withFileTypes: true })
-      for (const entry of entries) {
-        if (!entry.isDirectory()) continue
-        const candidate = path.join(scanRoot, entry.name, '.ai', 'handoff')
+      const scanEntries = fs.readdirSync(scanRoot, { withFileTypes: true })
+      for (const scanEntry of scanEntries) {
+        if (!scanEntry.isDirectory()) continue
+        const candidate = path.join(scanRoot, scanEntry.name, '.ai', 'handoff')
         if (fs.existsSync(path.join(candidate, 'MANIFEST.json'))) return candidate
       }
     } catch {
@@ -264,7 +386,7 @@ export function buildSystemPrompt(ctx: AahpContext): string {
         .join('\n')
     : ''
 
-  const lines = [
+  const taskLines = [
     `## AAHP v3 Context - ${m.project}`,
     `Phase: ${m.last_session.phase}`,
     `Last agent: ${m.last_session.agent} @ ${m.last_session.timestamp}`,
@@ -278,19 +400,19 @@ export function buildSystemPrompt(ctx: AahpContext): string {
   ]
 
   if (ctx.conventions) {
-    lines.push(`\n### Conventions (summary)`)
+    taskLines.push(`\n### Conventions (summary)`)
     // Include only first 50 lines to keep tokens lean
-    lines.push(ctx.conventions.split('\n').slice(0, 50).join('\n'))
+    taskLines.push(ctx.conventions.split('\n').slice(0, 50).join('\n'))
   }
 
   if (ctx.trust) {
-    lines.push(`\n### Trust State (summary)`)
-    lines.push(ctx.trust.split('\n').slice(0, 20).join('\n'))
+    taskLines.push(`\n### Trust State (summary)`)
+    taskLines.push(ctx.trust.split('\n').slice(0, 20).join('\n'))
   }
 
-  lines.push(`\n---\nYou have full project context. Do NOT ask for clarification - act on the above.`)
+  taskLines.push(`\n---\nYou have full project context. Do NOT ask for clarification - act on the above.`)
 
-  return lines.filter(l => l !== undefined).join('\n')
+  return taskLines.filter(l => l !== undefined).join('\n')
 }
 
 /** Update checksum + line count for a file entry in the manifest */
@@ -300,13 +422,13 @@ export function refreshManifestChecksums(ctx: AahpContext): AahpManifest {
     const content = readFile(ctx.handoffDir, filename)
     if (!content) continue
     const hash = crypto.createHash('sha256').update(content).digest('hex')
-    const lines = content.split('\n').length
+    const lineCount = content.split('\n').length
     const existing = m.files[filename]
     if (existing) {
       m.files[filename] = {
         ...existing,
         checksum: `sha256:${hash}`,
-        lines,
+        lines: lineCount,
         updated: new Date().toISOString(),
       }
     }

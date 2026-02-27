@@ -112,6 +112,10 @@
       {
         "command": "aahp.retryAgent",
         "title": "AAHP: Retry Failed Agent"
+      },
+      {
+        "command": "aahp.refreshAll",
+        "title": "AAHP: Refresh Dashboard"
       }
     ],
     "viewsContainers": {

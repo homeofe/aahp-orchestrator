@@ -150,6 +150,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   watcher.onDidDelete(refreshAll)
   context.subscriptions.push(watcher)
 
+  // ── File watcher: live-reload when NEXT_ACTIONS.md changes ─────────────────
+  const actionsWatcher = vscode.workspace.createFileSystemWatcher('**/.ai/handoff/NEXT_ACTIONS.md')
+  actionsWatcher.onDidChange(refreshAll)
+  actionsWatcher.onDidCreate(refreshAll)
+  actionsWatcher.onDidDelete(refreshAll)
+  context.subscriptions.push(actionsWatcher)
+
   // ── Re-resolve context when active editor changes (user switches repo) ───────
   context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(refreshAll))
 
