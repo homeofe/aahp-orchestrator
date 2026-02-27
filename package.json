@@ -1,0 +1,101 @@
+{
+  "name": "aahp-orchestrator",
+  "displayName": "AAHP Orchestrator",
+  "description": "Orchestrate GitHub Copilot and Claude Code with AAHP v3 context — zero questions, full context.",
+  "version": "0.1.0",
+  "publisher": "homeofe",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/homeofe/aahp-orchestrator.git"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["AI", "Other"],
+  "keywords": ["aahp", "copilot", "claude", "ai", "orchestrator", "handoff"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "icon": "assets/icon.png",
+  "contributes": {
+    "chatParticipants": [
+      {
+        "id": "aahp.orchestrator",
+        "name": "aahp",
+        "fullName": "AAHP Orchestrator",
+        "description": "Context-aware AI proxy. Reads your .ai/handoff/ files — no questions asked.",
+        "isSticky": true
+      }
+    ],
+    "commands": [
+      {
+        "command": "aahp.updateManifest",
+        "title": "AAHP: Update Manifest Checksums"
+      },
+      {
+        "command": "aahp.commitSession",
+        "title": "AAHP: Commit Session"
+      },
+      {
+        "command": "aahp.setPhase",
+        "title": "AAHP: Set Phase"
+      },
+      {
+        "command": "aahp.openDashboard",
+        "title": "AAHP: Open Dashboard"
+      },
+      {
+        "command": "aahp.copyContext",
+        "title": "AAHP: Copy Context to Clipboard"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "aahp-sidebar",
+          "title": "AAHP",
+          "icon": "assets/sidebar-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "aahp-sidebar": [
+        {
+          "type": "webview",
+          "id": "aahp.dashboard",
+          "name": "Dashboard"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "aahp.copyContext",
+        "key": "ctrl+alt+a",
+        "mac": "cmd+alt+a"
+      },
+      {
+        "command": "aahp.openDashboard",
+        "key": "ctrl+alt+d",
+        "mac": "cmd+alt+d"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.5.0",
+    "@vscode/vsce": "^2.26.0"
+  }
+}
