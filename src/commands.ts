@@ -218,6 +218,75 @@ export function registerCommands(
         vscode.window.showWarningMessage(`AAHP: Failed to update task - ${String(err)}`)
       }
     }),
+
+    // ── Create Task ──────────────────────────────────────────────────────────────
+    vscode.commands.registerCommand('aahp.createTask', async (repoPath?: string) => {
+      // Determine which repo to create the task in
+      const targetPath = repoPath
+        || dashboardProvider?.getFocusedRepoPath()
+        || getWorkspaceRoot()
+      if (!targetPath) {
+        vscode.window.showWarningMessage('AAHP: No repo selected.')
+        return
+      }
+
+      const manifestPath = path.join(targetPath, '.ai', 'handoff', 'MANIFEST.json')
+      if (!fs.existsSync(manifestPath)) {
+        vscode.window.showWarningMessage('AAHP: No MANIFEST.json found in this repo.')
+        return
+      }
+
+      // Prompt for task title
+      const title = await vscode.window.showInputBox({
+        title: 'AAHP: New Task',
+        prompt: 'Task title',
+        placeHolder: 'e.g. Add retry logic for agent failures',
+        validateInput: v => v.trim().length === 0 ? 'Title is required' : undefined,
+      })
+      if (!title) return
+
+      // Prompt for priority
+      const priority = await vscode.window.showQuickPick(
+        ['high', 'medium', 'low'],
+        { title: 'AAHP: Task Priority', placeHolder: 'Select priority' }
+      )
+      if (!priority) return
+
+      // Prompt for dependencies (optional)
+      const depsInput = await vscode.window.showInputBox({
+        title: 'AAHP: Dependencies',
+        prompt: 'Task IDs this depends on (comma-separated, leave empty for none)',
+        placeHolder: 'e.g. T-003, T-005',
+      })
+      if (depsInput === undefined) return // user cancelled
+
+      const dependsOn = depsInput.trim()
+        ? depsInput.split(',').map(s => s.trim()).filter(Boolean)
+        : []
+
+      try {
+        const raw = fs.readFileSync(manifestPath, 'utf8')
+        const manifest = JSON.parse(raw)
+        if (!manifest.tasks) manifest.tasks = {}
+        const nextId = manifest.next_task_id ?? Object.keys(manifest.tasks).length + 1
+        const taskId = `T-${String(nextId).padStart(3, '0')}`
+
+        manifest.tasks[taskId] = {
+          title: title.trim(),
+          status: dependsOn.length > 0 ? 'blocked' : 'ready',
+          priority,
+          depends_on: dependsOn,
+          created: new Date().toISOString(),
+        }
+        manifest.next_task_id = nextId + 1
+
+        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8')
+        reloadCtx()
+        vscode.window.showInformationMessage(`AAHP: Created ${taskId} - ${title.trim()}`)
+      } catch (err) {
+        vscode.window.showWarningMessage(`AAHP: Failed to create task - ${String(err)}`)
+      }
+    }),
   ]
 }
 

@@ -3,11 +3,11 @@
   "project": "aahp-orchestrator",
   "last_session": {
     "agent": "claude-code",
-    "session_id": "t005-task-tree-2026-02-27",
-    "timestamp": "2026-02-27T23:50:00.000Z",
+    "session_id": "t006-task-creation-2026-02-27",
+    "timestamp": "2026-02-27T23:55:00.000Z",
     "commit": "(see git log)",
     "phase": "implementation",
-    "duration_minutes": 15
+    "duration_minutes": 10
   },
   "files": {
     "STATUS.md": {
@@ -53,7 +53,7 @@
       "summary": "5-phase AAHP pipeline. VS Code extension specific: webview CSP, try/catch, vsce package notes."
     }
   },
-  "quick_context": "aahp-orchestrator v0.2.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Packaged as .vsix but not published. CI pipeline with 103 unit tests. All Open Tasks tree view added (T-005 done). 7 open tasks: task creation (T-006), retry logic (T-007), release workflow (T-008), test coverage (T-009/T-010), filtering (T-011), marketplace (T-003 blocked).",
+  "quick_context": "aahp-orchestrator v0.2.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Packaged as .vsix but not published. CI pipeline with 117 unit tests. Task creation from dashboard added (T-006 done). 6 open tasks: retry logic (T-007), release workflow (T-008), test coverage (T-009/T-010), filtering (T-011), marketplace (T-003 blocked).",
   "token_budget": {
     "manifest_only": 80,
     "manifest_plus_core": 1200,
@@ -102,16 +102,17 @@
       "priority": "high",
       "depends_on": [],
       "created": "2026-02-27T22:00:00.000Z",
-      "notes": "Native TreeView (aahp.allTasks) in sidebar with TaskTreeProvider. Groups open tasks by priority (high/medium/low), sorted by status then priority. Click to focus repo. 17 unit tests.",
-      "completed": "2026-02-27T23:50:00.000Z"
+      "notes": "Add a unified 'All Open Tasks' section to the sidebar dashboard that lists open/ready/in_progress tasks across all scanned repos, sorted by priority.",
+      "completed": "2026-02-27T22:48:00.483Z"
     },
     "T-006": {
       "title": "Add task creation from dashboard",
-      "status": "ready",
+      "status": "done",
       "priority": "medium",
       "depends_on": [],
       "created": "2026-02-27T22:00:00.000Z",
-      "notes": "Currently can only change task status via dropdown. Add 'New Task' button/command that creates a task in MANIFEST.json with title, priority, and optional depends_on."
+      "notes": "Added aahp.createTask command with title/priority/depends_on prompts, '+ New Task' button in dashboard task table, webview message handler, and 14 unit tests.",
+      "completed": "2026-02-27T23:55:00.000Z"
     },
     "T-007": {
       "title": "Agent retry on failure with backoff",
@@ -123,7 +124,7 @@
     },
     "T-008": {
       "title": "GitHub release workflow (tag-triggered)",
-      "status": "blocked",
+      "status": "ready",
       "priority": "medium",
       "depends_on": [
         "T-004"
@@ -149,7 +150,7 @@
     },
     "T-011": {
       "title": "Dashboard task filtering and sorting",
-      "status": "blocked",
+      "status": "ready",
       "priority": "low",
       "depends_on": [
         "T-005"

@@ -104,6 +104,10 @@
       {
         "command": "aahp.setTaskStatus",
         "title": "AAHP: Set Task Status"
+      },
+      {
+        "command": "aahp.createTask",
+        "title": "AAHP: Create New Task"
       }
     ],
     "viewsContainers": {

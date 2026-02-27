@@ -37,6 +37,10 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
     this._render()
   }
 
+  public getFocusedRepoPath(): string | undefined {
+    return this._focusedRepoPath
+  }
+
   public updateSessionState(sessions: ActiveSession[], queue: QueuedTask[]): void {
     this._activeSessions = sessions
     this._queuedTasks = queue
@@ -81,6 +85,9 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
           break
         case 'setTaskStatus':
           vscode.commands.executeCommand('aahp.setTaskStatus', msg.repoPath, msg.taskId, msg.status)
+          break
+        case 'createTask':
+          vscode.commands.executeCommand('aahp.createTask', msg.repoPath)
           break
       }
     })
@@ -547,6 +554,7 @@ h2 { font-size: 14px; margin: 0 0 4px; }
     }
 
     html += `</table>`
+    html += `<button class="btn btn-secondary" style="margin-top:6px;width:100%" data-cmd="createTask" data-repo-path="${escHtml(repoPath)}">+ New Task</button>`
     return html
   }
 
