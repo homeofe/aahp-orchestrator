@@ -3,11 +3,11 @@
   "project": "aahp-orchestrator",
   "last_session": {
     "agent": "claude-code",
-    "session_id": "t004-changelog-2026-02-27",
-    "timestamp": "2026-02-27T23:45:00.000Z",
+    "session_id": "t005-task-tree-2026-02-27",
+    "timestamp": "2026-02-27T23:50:00.000Z",
     "commit": "(see git log)",
     "phase": "implementation",
-    "duration_minutes": 10
+    "duration_minutes": 15
   },
   "files": {
     "STATUS.md": {
@@ -53,7 +53,7 @@
       "summary": "5-phase AAHP pipeline. VS Code extension specific: webview CSP, try/catch, vsce package notes."
     }
   },
-  "quick_context": "aahp-orchestrator v0.2.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Packaged as .vsix but not published. CI pipeline with 86 unit tests. CHANGELOG.md added (T-004 done). 8 open tasks: aggregated task view (T-005), task creation (T-006), retry logic (T-007), release workflow (T-008), test coverage (T-009/T-010), filtering (T-011), marketplace (T-003 blocked).",
+  "quick_context": "aahp-orchestrator v0.2.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Packaged as .vsix but not published. CI pipeline with 103 unit tests. All Open Tasks tree view added (T-005 done). 7 open tasks: task creation (T-006), retry logic (T-007), release workflow (T-008), test coverage (T-009/T-010), filtering (T-011), marketplace (T-003 blocked).",
   "token_budget": {
     "manifest_only": 80,
     "manifest_plus_core": 1200,
@@ -93,16 +93,17 @@
       "priority": "high",
       "depends_on": [],
       "created": "2026-02-27T22:00:00.000Z",
-      "completed": "2026-02-27T23:45:00.000Z",
-      "notes": "Required for VS Code Marketplace. Document v0.1.0 and v0.2.0 changes."
+      "notes": "Required for VS Code Marketplace. Document v0.1.0 and v0.2.0 changes.",
+      "completed": "2026-02-27T22:41:38.476Z"
     },
     "T-005": {
       "title": "Aggregated all-repos open task view in sidebar",
-      "status": "ready",
+      "status": "done",
       "priority": "high",
       "depends_on": [],
       "created": "2026-02-27T22:00:00.000Z",
-      "notes": "Add a unified 'All Open Tasks' section to the sidebar dashboard that lists open/ready/in_progress tasks across all scanned repos, sorted by priority."
+      "notes": "Native TreeView (aahp.allTasks) in sidebar with TaskTreeProvider. Groups open tasks by priority (high/medium/low), sorted by status then priority. Click to focus repo. 17 unit tests.",
+      "completed": "2026-02-27T23:50:00.000Z"
     },
     "T-006": {
       "title": "Add task creation from dashboard",

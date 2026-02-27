@@ -121,6 +121,10 @@
           "type": "webview",
           "id": "aahp.dashboard",
           "name": "Dashboard"
+        },
+        {
+          "id": "aahp.allTasks",
+          "name": "All Open Tasks"
         }
       ]
     },

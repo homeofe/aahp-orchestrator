@@ -71,6 +71,7 @@ export const window = {
     dispose: vi.fn(),
   })),
   registerWebviewViewProvider: vi.fn(() => ({ dispose: vi.fn() })),
+  createTreeView: vi.fn(() => ({ dispose: vi.fn(), onDidChangeSelection: vi.fn() })),
   onDidChangeActiveTextEditor: vi.fn(() => ({ dispose: vi.fn() })),
   terminals: [] as Array<{ name: string }>,
 }
@@ -135,7 +136,43 @@ export enum ConfigurationTarget {
 }
 
 export class ThemeIcon {
+  constructor(public readonly id: string, public readonly color?: ThemeColor) {}
+}
+
+export class ThemeColor {
   constructor(public readonly id: string) {}
+}
+
+export enum TreeItemCollapsibleState {
+  None = 0,
+  Collapsed = 1,
+  Expanded = 2,
+}
+
+export class TreeItem {
+  label: string | undefined
+  collapsibleState: TreeItemCollapsibleState | undefined
+  description?: string
+  tooltip?: string
+  iconPath?: ThemeIcon
+  contextValue?: string
+  command?: { command: string; title: string; arguments?: unknown[] }
+  constructor(label: string, collapsibleState?: TreeItemCollapsibleState) {
+    this.label = label
+    this.collapsibleState = collapsibleState
+  }
+}
+
+export class EventEmitter<T> {
+  private _listeners: Array<(e: T) => void> = []
+  event = (listener: (e: T) => void) => {
+    this._listeners.push(listener)
+    return { dispose: vi.fn() }
+  }
+  fire(data: T): void {
+    for (const l of this._listeners) l(data)
+  }
+  dispose = vi.fn()
 }
 
 export class MarkdownString {

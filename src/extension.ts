@@ -8,6 +8,7 @@ import { AahpDashboardProvider } from './sidebar'
 import { registerCommands } from './commands'
 import { AgentRun, getDevRoot } from './agent-spawner'
 import { SessionMonitor } from './session-monitor'
+import { TaskTreeProvider } from './task-tree'
 
 // ── Shared state ──────────────────────────────────────────────────────────────
 
@@ -75,6 +76,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.window.registerWebviewViewProvider('aahp.dashboard', dashboardProvider)
   )
 
+  // ── All Open Tasks tree view ──────────────────────────────────────────────
+  const taskTreeProvider = new TaskTreeProvider()
+  context.subscriptions.push(
+    vscode.window.createTreeView('aahp.allTasks', { treeDataProvider: taskTreeProvider })
+  )
+
   const refreshAll = (): void => {
     reloadContext()
     updateStatusBar(statusBar, currentCtx)
@@ -85,6 +92,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     if (devRoot) {
       const overviews = scanAllRepoOverviews(devRoot)
       dashboardProvider.updateRepoOverviews(overviews)
+      taskTreeProvider.update(overviews)
     }
 
     // Auto-focus based on active editor context
