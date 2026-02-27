@@ -231,7 +231,11 @@ async function runClaude(
       '--print',
       '--allowedTools', 'Read,Write,Edit,Bash,Glob,Grep,WebFetch',
       '--output-format', 'json',
-    ], { cwd: run.repo.repoPath, shell: process.platform === 'win32' })
+    ], {
+      cwd: run.repo.repoPath,
+      shell: process.platform === 'win32',
+      env: { ...process.env, CLAUDECODE: undefined },
+    })
 
     proc.stdin.write(prompt)
     proc.stdin.end()
