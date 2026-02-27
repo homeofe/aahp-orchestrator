@@ -2,7 +2,7 @@
   "name": "aahp-orchestrator",
   "displayName": "AAHP Orchestrator",
   "description": "Orchestrate GitHub Copilot and Claude Code with AAHP v3 context — zero questions, full context.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "homeofe",
   "license": "MIT",
   "repository": {
@@ -78,6 +78,10 @@
       {
         "command": "aahp.copyContext",
         "title": "AAHP: Copy Context to Clipboard"
+      },
+      {
+        "command": "aahp.runAll",
+        "title": "AAHP: Run All Agents"
       }
     ],
     "viewsContainers": {
@@ -108,6 +112,11 @@
         "command": "aahp.openDashboard",
         "key": "ctrl+alt+d",
         "mac": "cmd+alt+d"
+      },
+      {
+        "command": "aahp.runAll",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r"
       }
     ]
   },
@@ -130,6 +139,18 @@
         "type": "boolean",
         "default": false,
         "description": "Suppress the 'Is this a development root folder?' prompt on startup.",
+        "scope": "window"
+      },
+      "aahp.agentBackend": {
+        "type": "string",
+        "default": "auto",
+        "enum": ["auto", "claude", "copilot"],
+        "enumDescriptions": [
+          "Auto: high-priority tasks → Claude Code, medium/low → GitHub Copilot",
+          "Always use Claude Code (claude CLI) for all agents",
+          "Always use GitHub Copilot (VS Code LM API) for all agents"
+        ],
+        "markdownDescription": "Which AI backend to use when spawning agents via **Run All Agents**. `auto` uses Claude for heavy tasks and Copilot for routine ones.",
         "scope": "window"
       }
     }

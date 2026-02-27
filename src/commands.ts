@@ -7,13 +7,14 @@ import {
   saveManifest,
   getWorkspaceRoot,
 } from './aahp-reader'
-
+import { scanAllRepos, spawnAllAgents, getDevRoot, AgentRun } from './agent-spawner'
 const PHASES = ['research', 'architecture', 'implementation', 'review', 'fix', 'release']
 
 export function registerCommands(
   context: vscode.ExtensionContext,
   getCtx: () => AahpContext | undefined,
-  reloadCtx: () => void
+  reloadCtx: () => void,
+  onAgentRuns?: (runs: AgentRun[]) => void
 ): vscode.Disposable[] {
   return [
 
@@ -81,5 +82,41 @@ export function registerCommands(
     vscode.commands.registerCommand('aahp.openDashboard', () => {
       vscode.commands.executeCommand('aahp.dashboard.focus')
     }),
+
+    // ── Run All Agents ────────────────────────────────────────────────────────
+    vscode.commands.registerCommand('aahp.runAll', async () => {
+      const devRoot = getDevRoot()
+      if (!devRoot) {
+        vscode.window.showWarningMessage('AAHP: Set aahp.rootFolderPath in settings first.')
+        return
+      }
+
+      const repos = scanAllRepos(devRoot)
+      if (repos.length === 0) {
+        vscode.window.showInformationMessage('AAHP: No repos with ready tasks found.')
+        return
+      }
+
+      const confirm = await vscode.window.showInformationMessage(
+        `AAHP: Spawn ${repos.length} Claude agents in parallel?\n\n${repos.map(r => `• ${r.repoName} → [${r.taskId}] ${r.taskTitle}`).join('\n')}`,
+        { modal: true },
+        'Run All Agents'
+      )
+      if (confirm !== 'Run All Agents') return
+
+      vscode.window.showInformationMessage(`🤖 AAHP: Spawning ${repos.length} agents — check Output channels per repo`)
+
+      spawnAllAgents(repos, runs => {
+        onAgentRuns?.(runs)
+      }).then(finalRuns => {
+        const done = finalRuns.filter(r => r.committed).length
+        const failed = finalRuns.filter(r => r.status === 'failed').length
+        vscode.window.showInformationMessage(
+          `🤖 AAHP Agents done: ${done} committed, ${failed} failed, ${finalRuns.length - done - failed} partial`
+        )
+        reloadCtx()
+      })
+    }),
   ]
 }
+

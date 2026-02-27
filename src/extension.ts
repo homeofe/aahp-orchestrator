@@ -6,6 +6,7 @@ import { registerChatParticipant } from './chat-participant'
 import { registerContextInjector } from './context-injector'
 import { AahpDashboardProvider } from './sidebar'
 import { registerCommands } from './commands'
+import { AgentRun } from './agent-spawner'
 
 // ── Shared state ──────────────────────────────────────────────────────────────
 
@@ -95,7 +96,9 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 
   // ── Commands ────────────────────────────────────────────────────────────────
-  for (const d of registerCommands(context, getCtx, refreshAll)) {
+  for (const d of registerCommands(context, getCtx, refreshAll, (runs: AgentRun[]) => {
+    dashboardProvider.updateAgentRuns(runs)
+  })) {
     context.subscriptions.push(d)
   }
 
