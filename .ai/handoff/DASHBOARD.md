@@ -35,7 +35,7 @@
 | integration | 0 | not set up | - |
 | e2e | 0 | not set up | - |
 
-**Total: 72 tests, 72 passing (5 suites, Vitest)**
+**Total: 86 tests, 86 passing (5 suites, Vitest)**
 
 ---
 
@@ -45,7 +45,7 @@
 |-----------|--------|---------|
 | .vsix package | verified - v0.2.0 built | - |
 | VS Code Marketplace | not published | VSCE_PAT (T-003) |
-| GitHub Releases | not tagged | needs CHANGELOG.md (T-004) |
+| GitHub Releases | not tagged | needs release workflow (T-008) |
 | CI pipeline | ✅ verified (compile + lint + test) | - |
 
 ---
@@ -54,9 +54,9 @@
 
 | Field | Value |
 |-------|-------|
-| Current task | T-004 (CHANGELOG.md) - Ready |
+| Current task | T-005 (aggregated task view) - Ready |
 | Phase | implementation |
-| Last completed | T-002: Add automated tests (2026-02-27) |
+| Last completed | T-004: Add CHANGELOG.md (2026-02-27) |
 | Rate limit | None |
 
 ---
@@ -65,22 +65,22 @@
 
 | ID | Task | Priority | Blocked by | Ready? |
 |----|------|----------|-----------|--------|
-| T-004 | Add CHANGELOG.md | HIGH | - | Ready |
 | T-005 | Aggregated all-repos open task view in sidebar | HIGH | - | Ready |
 | T-006 | Add task creation from dashboard | MEDIUM | - | Ready |
 | T-007 | Agent retry on failure with backoff | MEDIUM | - | Ready |
-| T-008 | GitHub release workflow (tag-triggered) | MEDIUM | T-004 | Blocked |
+| T-008 | GitHub release workflow (tag-triggered) | MEDIUM | - | Ready |
 | T-009 | Test chat-participant and context-injector | MEDIUM | - | Ready |
 | T-010 | Integration tests with VS Code extension host | LOW | - | Ready |
 | T-011 | Dashboard task filtering and sorting | LOW | T-005 | Blocked |
-| T-003 | Publish to VS Code Marketplace | MEDIUM | T-004, VSCE_PAT | Blocked |
+| T-003 | Publish to VS Code Marketplace | MEDIUM | VSCE_PAT | Blocked |
 
 ## Completed Tasks
 
 | ID | Task | Completed |
 |----|------|-----------|
+| T-004 | Add CHANGELOG.md | 2026-02-27 |
 | T-001 | Add GitHub Actions CI pipeline | 2026-02-27 |
-| T-002 | Add automated tests (72 unit tests) | 2026-02-27 |
+| T-002 | Add automated tests (86 unit tests) | 2026-02-27 |
 
 ---
 

@@ -6,6 +6,30 @@
 
 ---
 
+## 2026-02-27 Claude Code: Add CHANGELOG.md (T-004)
+
+**Agent:** Claude Code (claude-opus-4-6)
+**Phase:** implementation
+**Branch:** main
+**Task:** T-004
+
+### What was done
+
+- Created `CHANGELOG.md` at repo root following Keep a Changelog format
+- Documented v0.1.0 (initial release) and v0.2.0 (protocol, CI, tests, dashboard) entries
+- Added Unreleased section listing all planned tasks (T-003, T-005 through T-011)
+- Verified `npm run compile`, `npm run lint`, `npm test` (86 tests), and `vsce package` all pass
+- Updated MANIFEST.json: T-004 marked done, quick_context updated, last_session updated
+
+### Decisions made
+
+- Used Keep a Changelog 1.1.0 format as specified in NEXT_ACTIONS.md
+- Grouped v0.1.0 commits (e56840c through 8f91578) and v0.2.0 commits (4e7cc3a through 6076817)
+- Added comparison links at bottom pointing to GitHub (will work once tags are created)
+- T-003 and T-008 are now unblocked on the CHANGELOG dependency
+
+---
+
 ## 2026-02-27 Claude Code: Comprehensive task audit and dashboard update
 
 **Agent:** Claude Code (claude-opus-4-6)
