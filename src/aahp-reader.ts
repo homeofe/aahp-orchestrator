@@ -98,8 +98,8 @@ export function parseNextActions(markdown: string): NextActionItem[] {
         currentSection = 'done'
       }
 
-      // Check if heading is a task: ### T-NNN: Title or ### Title *(priority)*
-      const taskHeading = trimmed.match(/^###\s+(?:~~)?(?:(T-\d+)[:\s]+)?(.+?)(?:~~)?(?:\s*\*\((high|medium|low)\s*priority\)\*)?$/)
+      // Check if heading is a task: ## T-NNN: Title or ### T-NNN: Title or ### Title *(priority)*
+      const taskHeading = trimmed.match(/^#{2,3}\s+(?:~~)?(?:(T-\d+)[:\s]+)?(.+?)(?:~~)?(?:\s*\*\((high|medium|low)\s*priority\)\*)?$/)
       if (taskHeading && taskHeading[2]) {
         const rawTitle = taskHeading[2].replace(/\*+/g, '').trim()
         if (rawTitle && !/^(ready|blocked|done|in.?progress|recently completed|status summary|reference|open tasks?)$/i.test(rawTitle)) {
@@ -191,6 +191,46 @@ export interface RepoOverview {
   lastActivity: string   // ISO timestamp from last_session.timestamp
   health: 'healthy' | 'stale' | 'no-tasks'
   nextActions: NextActionItem[]
+  githubUrl?: string      // HTTPS URL to the GitHub repo (if detected)
+}
+
+/** Read the git remote origin URL and convert to an HTTPS GitHub URL.
+ *  Returns undefined if no GitHub remote is found. */
+function getGithubUrl(repoPath: string): string | undefined {
+  try {
+    const gitConfigPath = path.join(repoPath, '.git', 'config')
+    if (!fs.existsSync(gitConfigPath)) return undefined
+    const content = fs.readFileSync(gitConfigPath, 'utf8')
+    // Match [remote "origin"] section and extract url
+    const originMatch = content.match(/\[remote\s+"origin"\][^[]*url\s*=\s*(.+)/m)
+    if (!originMatch?.[1]) return undefined
+    const url = originMatch[1].trim()
+    // Convert SSH to HTTPS: git@github.com:user/repo.git -> https://github.com/user/repo
+    const sshMatch = url.match(/git@github\.com:(.+?)(?:\.git)?$/)
+    if (sshMatch?.[1]) return `https://github.com/${sshMatch[1]}`
+    // Already HTTPS: https://github.com/user/repo.git -> https://github.com/user/repo
+    const httpsMatch = url.match(/(https:\/\/github\.com\/[^/]+\/[^/]+?)(?:\.git)?$/)
+    if (httpsMatch?.[1]) return httpsMatch[1]
+    return undefined
+  } catch { return undefined }
+}
+
+/** Cross-reference parsed NEXT_ACTIONS items with MANIFEST.json task statuses.
+ *  Items with section 'unknown' get their section inferred from the manifest task status. */
+function inferSectionsFromManifest(items: NextActionItem[], tasks: Record<string, AahpTask>): NextActionItem[] {
+  return items.map(item => {
+    if (item.section !== 'unknown') return item
+    if (item.taskId && tasks[item.taskId]) {
+      const manifestStatus = tasks[item.taskId]!.status
+      const sectionMap: Record<string, NextActionItem['section']> = {
+        ready: 'ready', in_progress: 'in_progress', blocked: 'blocked',
+        done: 'done', pending: 'ready',
+      }
+      return { ...item, section: sectionMap[manifestStatus] ?? 'ready' }
+    }
+    // No task ID or task not in manifest - default to ready
+    return { ...item, section: 'ready' }
+  })
 }
 
 /** Scan all subdirectories of rootDir for repos with AAHP manifests.
@@ -239,9 +279,15 @@ export function scanAllRepoOverviews(rootDir: string): RepoOverview[] {
 
       // Parse NEXT_ACTIONS.md for structured next-step items
       const nextActionsMd = readFile(handoffDir, 'NEXT_ACTIONS.md')
-      const nextActions = nextActionsMd ? parseNextActions(nextActionsMd) : []
+      let nextActions = nextActionsMd ? parseNextActions(nextActionsMd) : []
 
-      results.push({
+      // Cross-reference with MANIFEST.json to fix 'unknown' sections
+      nextActions = inferSectionsFromManifest(nextActions, tasks)
+
+      // Detect GitHub remote URL
+      const githubUrl = getGithubUrl(repoPath)
+
+      const overview: RepoOverview = {
         repoPath,
         repoName: entry.name,
         manifest,
@@ -251,7 +297,9 @@ export function scanAllRepoOverviews(rootDir: string): RepoOverview[] {
         lastActivity,
         health,
         nextActions,
-      })
+      }
+      if (githubUrl) overview.githubUrl = githubUrl
+      results.push(overview)
     } catch { /* skip malformed manifests */ }
   }
 

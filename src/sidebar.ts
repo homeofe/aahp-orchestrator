@@ -95,6 +95,11 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
         case 'refreshNextActions':
           vscode.commands.executeCommand('aahp.refreshAll')
           break
+        case 'openUrl':
+          if (msg.url && typeof msg.url === 'string' && msg.url.startsWith('https://')) {
+            vscode.env.openExternal(vscode.Uri.parse(msg.url))
+          }
+          break
       }
     })
   }
@@ -327,6 +332,26 @@ body {
 }
 h2 { font-size: 14px; margin: 0 0 4px; }
 
+/* GitHub link */
+.gh-link {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: bold;
+  padding: 0 4px;
+  margin-left: 4px;
+  border-radius: 3px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  text-decoration: none;
+  cursor: pointer;
+  vertical-align: middle;
+  line-height: 16px;
+}
+.gh-link:hover {
+  background: var(--vscode-focusBorder);
+  color: var(--vscode-editor-background);
+}
+
 /* Next Steps */
 .ns-repo { margin-bottom: 8px; }
 .ns-repo-header {
@@ -488,8 +513,12 @@ h2 { font-size: 14px; margin: 0 0 4px; }
       const taskLabel = `${readyCount}/${r.taskCounts.total}`
       const timeAgo = formatTimeAgo(r.lastActivity)
 
+      const ghLink = r.githubUrl
+        ? `<a class="gh-link" data-cmd="openUrl" data-url="${escHtml(r.githubUrl)}" title="Open on GitHub">GH</a>`
+        : ''
+
       html += `<div class="card repo-card${isFocused ? ' focused' : ''}" data-cmd="focusRepo" data-repo-path="${escHtml(r.repoPath)}">
-        <div class="repo-name"><span class="dot ${dotClass}"></span>${escHtml(r.repoName)}</div>
+        <div class="repo-name"><span class="dot ${dotClass}"></span>${escHtml(r.repoName)}${ghLink}</div>
         <div class="repo-meta">
           <span class="badge phase">${escHtml(phase)}</span>
           <span>${taskLabel}</span>
@@ -547,8 +576,11 @@ h2 { font-size: 14px; margin: 0 0 4px; }
     if (isCollapsed) return html
 
     for (const { repo, actionable } of reposWithActions) {
+      const nsGhLink = repo.githubUrl
+        ? ` <a class="gh-link" data-cmd="openUrl" data-url="${escHtml(repo.githubUrl)}" title="Open on GitHub">GH</a>`
+        : ''
       html += `<div class="ns-repo">`
-      html += `<div class="ns-repo-header" data-cmd="focusRepo" data-repo-path="${escHtml(repo.repoPath)}"><span class="dot dot-${repo.health}"></span>${escHtml(repo.repoName)}</div>`
+      html += `<div class="ns-repo-header" data-cmd="focusRepo" data-repo-path="${escHtml(repo.repoPath)}"><span class="dot dot-${repo.health}"></span>${escHtml(repo.repoName)}${nsGhLink}</div>`
 
       const shown = actionable.slice(0, 3)
       const remaining = actionable.length - shown.length
@@ -601,8 +633,12 @@ h2 { font-size: 14px; margin: 0 0 4px; }
 
     if (this._collapsedSections.has('project')) return html
 
-    // Header
-    html += `<h2>${escHtml(m.project)}</h2>`
+    // Header - include GitHub link if available
+    const focusedOverview = this._repoOverviews.find(r => r.repoPath === this._focusedRepoPath)
+    const projectGhLink = focusedOverview?.githubUrl
+      ? ` <a class="gh-link" data-cmd="openUrl" data-url="${escHtml(focusedOverview.githubUrl)}" title="Open on GitHub">GitHub</a>`
+      : ''
+    html += `<h2>${escHtml(m.project)}${projectGhLink}</h2>`
     html += `<span class="badge">v${escHtml(version)}</span>`
     html += `<span class="badge phase">${escHtml(phase)}</span>`
     html += `<span class="badge">${escHtml(m.last_session?.agent ?? '')}</span>`
@@ -712,6 +748,8 @@ h2 { font-size: 14px; margin: 0 0 4px; }
         if (el.dataset.repoPath) data.repoPath = el.dataset.repoPath
         if (el.dataset.section) data.section = el.dataset.section
         if (el.dataset.taskId) data.taskId = el.dataset.taskId
+        if (el.dataset.url) data.url = el.dataset.url
+        if (cmd === 'openUrl') { e.stopPropagation(); }
         post(cmd, data)
       })
 
