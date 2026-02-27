@@ -4,10 +4,10 @@
   "last_session": {
     "agent": "claude-code",
     "session_id": "t006-task-creation-2026-02-27",
-    "timestamp": "2026-02-27T23:55:00.000Z",
+    "timestamp": "2026-02-27T22:54:22.513Z",
     "commit": "(see git log)",
     "phase": "implementation",
-    "duration_minutes": 10
+    "duration_minutes": 2
   },
   "files": {
     "STATUS.md": {
@@ -111,8 +111,8 @@
       "priority": "medium",
       "depends_on": [],
       "created": "2026-02-27T22:00:00.000Z",
-      "notes": "Added aahp.createTask command with title/priority/depends_on prompts, '+ New Task' button in dashboard task table, webview message handler, and 14 unit tests.",
-      "completed": "2026-02-27T23:55:00.000Z"
+      "notes": "Currently can only change task status via dropdown. Add 'New Task' button/command that creates a task in MANIFEST.json with title, priority, and optional depends_on.",
+      "completed": "2026-02-27T22:54:22.513Z"
     },
     "T-007": {
       "title": "Agent retry on failure with backoff",
