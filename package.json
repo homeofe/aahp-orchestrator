@@ -25,7 +25,37 @@
         "name": "aahp",
         "fullName": "AAHP Orchestrator",
         "description": "Context-aware AI proxy. Reads your .ai/handoff/ files — no questions asked.",
-        "isSticky": true
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "help",
+            "description": "Show all @aahp commands and usage examples"
+          },
+          {
+            "name": "status",
+            "description": "Show current AAHP status: phase, quick_context, last agent"
+          },
+          {
+            "name": "tasks",
+            "description": "List all tasks with their status and priority"
+          },
+          {
+            "name": "next",
+            "description": "What should I work on next?"
+          },
+          {
+            "name": "context",
+            "description": "Dump the full AAHP system prompt that gets injected into every request"
+          },
+          {
+            "name": "phase",
+            "description": "Show or set the current project phase"
+          },
+          {
+            "name": "done",
+            "description": "Mark a task as done. Usage: @aahp /done T-003"
+          }
+        ]
       }
     ],
     "commands": [
