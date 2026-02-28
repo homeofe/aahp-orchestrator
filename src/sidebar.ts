@@ -3,6 +3,7 @@ import { AahpContext, AahpTask, NextActionItem, RepoOverview, getTopTask } from 
 import { AgentRun, sessionTokens } from './agent-spawner'
 import { ActiveSession, QueuedTask } from './session-monitor'
 import { AgentLogEntry } from './agent-log'
+import { TaskFilter, DEFAULT_FILTER, filterAndSortTasks, getRepoNames } from './task-filter'
 
 export class AahpDashboardProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView
@@ -15,6 +16,7 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
   private _activeSessions: ActiveSession[] = []
   private _queuedTasks: QueuedTask[] = []
   private _logHistory: AgentLogEntry[] = []
+  private _taskFilter: TaskFilter = { ...DEFAULT_FILTER }
   private _requestRefresh?: () => void
   private _renderTimer?: ReturnType<typeof setTimeout>
   private _batchMode = false
@@ -215,6 +217,15 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
         case 'fixTask':
           vscode.commands.executeCommand('aahp.fixTask', msg.repoPath, msg.taskId)
           break
+        case 'setTaskFilter':
+          if (msg.filterKey && msg.filterValue !== undefined) {
+            const key = msg.filterKey as keyof TaskFilter
+            if (key === 'status' || key === 'priority' || key === 'repo') {
+              this._taskFilter[key] = msg.filterValue
+            }
+          }
+          this._render()
+          break
         case 'refreshNextActions':
           vscode.commands.executeCommand('aahp.refreshAll')
           break
@@ -249,6 +260,7 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
   ${this._renderAgentControl()}
   ${this._renderHistory()}
   ${this._renderRepoGrid()}
+  ${this._renderAggregatedTasks()}
   ${this._renderNextSteps()}
   ${this._renderFocusedProject()}
   ${this._renderQuickActions()}
@@ -553,6 +565,43 @@ h2 { font-size: 14px; margin: 0 0 4px; }
   color: var(--vscode-button-foreground);
 }
 
+/* Filter bar */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.filter-bar select {
+  font-size: 10px;
+  background: var(--vscode-dropdown-background, var(--vscode-input-background));
+  border: 1px solid var(--vscode-dropdown-border, var(--vscode-widget-border, rgba(128,128,128,0.3)));
+  color: var(--vscode-dropdown-foreground, var(--vscode-foreground));
+  border-radius: 3px;
+  padding: 2px 4px;
+  cursor: pointer;
+  flex: 1;
+  min-width: 60px;
+}
+.filter-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  opacity: 0.5;
+  letter-spacing: 0.3px;
+  margin-bottom: 1px;
+}
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 60px;
+}
+.agg-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.agg-table td { padding: 2px 4px; vertical-align: middle; }
+.agg-table tr:hover td { background: var(--vscode-list-hoverBackground); }
+.agg-repo { font-size: 9px; opacity: 0.4; }
+.agg-age { font-size: 9px; opacity: 0.4; white-space: nowrap; }
+
 `
   }
 
@@ -737,6 +786,107 @@ h2 { font-size: 14px; margin: 0 0 4px; }
     }
 
     html += `</div>`
+    return html
+  }
+
+  // ── Section: Aggregated Tasks ───────────────────────────────────────────────────
+
+  private _renderAggregatedTasks(): string {
+    const overviews = this._repoOverviews
+    if (overviews.length === 0) return ''
+
+    // Count total tasks across all repos
+    const totalTasks = overviews.reduce(
+      (sum, r) => sum + (r.manifest.tasks ? Object.keys(r.manifest.tasks).length : 0),
+      0,
+    )
+    if (totalTasks === 0) return ''
+
+    const isCollapsed = this._collapsedSections.has('allTasks')
+    const tasks = filterAndSortTasks(overviews, this._taskFilter)
+    const hasActiveFilter =
+      this._taskFilter.status !== 'all' ||
+      this._taskFilter.priority !== 'all' ||
+      this._taskFilter.repo !== 'all'
+
+    const countLabel = hasActiveFilter ? `${tasks.length}/${totalTasks}` : `${totalTasks}`
+
+    let html = `<div class="section-header${isCollapsed ? ' collapsed' : ''}" data-cmd="toggleSection" data-section="allTasks">
+      <span>All Tasks (${countLabel})</span>
+      <span class="chevron">&#9660;</span>
+    </div>`
+
+    if (isCollapsed) return html
+
+    // Filter bar
+    const repoNames = getRepoNames(overviews)
+    const f = this._taskFilter
+
+    html += `<div class="filter-bar">`
+
+    html += `<div class="filter-group">
+      <span class="filter-label">Status</span>
+      <select data-cmd="setTaskFilter" data-filter-key="status">
+        ${['all', 'ready', 'in_progress', 'blocked', 'pending', 'done'].map(
+          s => `<option value="${s}"${f.status === s ? ' selected' : ''}>${s === 'all' ? 'All' : s}</option>`,
+        ).join('')}
+      </select>
+    </div>`
+
+    html += `<div class="filter-group">
+      <span class="filter-label">Priority</span>
+      <select data-cmd="setTaskFilter" data-filter-key="priority">
+        ${['all', 'high', 'medium', 'low'].map(
+          p => `<option value="${p}"${f.priority === p ? ' selected' : ''}>${p === 'all' ? 'All' : p}</option>`,
+        ).join('')}
+      </select>
+    </div>`
+
+    if (repoNames.length > 1) {
+      html += `<div class="filter-group">
+        <span class="filter-label">Repo</span>
+        <select data-cmd="setTaskFilter" data-filter-key="repo">
+          <option value="all"${f.repo === 'all' ? ' selected' : ''}>All</option>
+          ${repoNames.map(
+            r => `<option value="${escHtml(r)}"${f.repo === r ? ' selected' : ''}>${escHtml(r)}</option>`,
+          ).join('')}
+        </select>
+      </div>`
+    }
+
+    html += `</div>`
+
+    // Task table
+    if (tasks.length === 0) {
+      html += `<div class="empty-state">No tasks match filters</div>`
+      return html
+    }
+
+    html += `<table class="agg-table">`
+    for (const ft of tasks) {
+      const priClass =
+        ft.task.priority === 'high' ? 'pri-high' :
+        ft.task.priority === 'medium' ? 'pri-medium' : 'pri-low'
+      const statusIcon: Record<string, string> = {
+        done: 'v', in_progress: '>>', ready: '*', blocked: 'x', pending: '~',
+      }
+      const icon = statusIcon[ft.task.status] ?? '?'
+      const age = ft.task.created ? formatTimeAgo(ft.task.created) : ''
+      const dblAttr = ft.task.status !== 'done'
+        ? ` data-dbl="fixTask" data-repo-path="${escHtml(ft.repoPath)}" data-task-id="${escHtml(ft.taskId)}"`
+        : ''
+
+      html += `<tr${dblAttr}>
+        <td style="font-size:11px;opacity:.6;width:16px">${icon}</td>
+        <td class="task-id">${escHtml(ft.taskId)}</td>
+        <td>${escHtml(ft.task.title)}</td>
+        <td><span class="${priClass}" style="font-size:10px">${escHtml(ft.task.priority)}</span></td>
+        <td class="agg-repo">${escHtml(ft.repoName)}</td>
+        <td class="agg-age">${escHtml(age)}</td>
+      </tr>`
+    }
+    html += `</table>`
+
     return html
   }
 
@@ -1000,11 +1150,19 @@ h2 { font-size: 14px; margin: 0 0 4px; }
       document.addEventListener('change', function(e) {
         var el = e.target.closest('[data-cmd]')
         if (!el) return
-        post(el.dataset.cmd, {
-          repoPath: el.dataset.repoPath,
-          taskId: el.dataset.taskId,
-          status: el.value
-        })
+        var cmd = el.dataset.cmd
+        if (cmd === 'setTaskFilter') {
+          post(cmd, {
+            filterKey: el.dataset.filterKey,
+            filterValue: el.value
+          })
+        } else {
+          post(cmd, {
+            repoPath: el.dataset.repoPath,
+            taskId: el.dataset.taskId,
+            status: el.value
+          })
+        }
       })
     `
   }
