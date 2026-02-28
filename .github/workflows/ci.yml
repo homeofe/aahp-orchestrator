@@ -34,3 +34,7 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Integration tests
+        run: xvfb-run -a npm run test:integration
+        if: runner.os == 'Linux'

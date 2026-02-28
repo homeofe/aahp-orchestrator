@@ -8,7 +8,6 @@ import {
   saveManifest,
   getWorkspaceRoot,
   parseNextActions,
-  buildSystemPrompt,
   scanAllRepoOverviews,
 } from './aahp-reader'
 import { scanAllRepos, spawnAllAgents, retryFailedAgent, getDevRoot, AgentRun, buildAgentPrompt, cancelAgent } from './agent-spawner'
@@ -100,17 +99,8 @@ export function registerCommands(
       vscode.window.showInformationMessage(`AAHP: Phase set to "${picked}" ✓`)
     }),
 
-    // ── Copy Context to Clipboard ───────────────────────────────────────────
-    vscode.commands.registerCommand('aahp.copyContext', async () => {
-      const ctx = getCtx()
-      if (!ctx) {
-        vscode.window.showWarningMessage('AAHP: No MANIFEST.json found.')
-        return
-      }
-      const prompt = buildSystemPrompt(ctx)
-      await vscode.env.clipboard.writeText(prompt)
-      vscode.window.showInformationMessage(`AAHP: Context copied to clipboard (${prompt.length} chars)`)
-    }),
+    // NOTE: aahp.copyContext is registered in context-injector.ts (not here)
+    // to avoid duplicate command registration errors in the VS Code extension host.
 
     // ── Open Dashboard ────────────────────────────────────────────────────────
     vscode.commands.registerCommand('aahp.openDashboard', () => {

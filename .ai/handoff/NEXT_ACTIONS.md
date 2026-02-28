@@ -10,43 +10,13 @@
 
 | Status | Count | Tasks |
 |--------|-------|-------|
-| Done | 10 | T-001, T-002, T-003, T-004, T-005, T-006, T-007, T-008, T-009 |
-| Ready | 2 | T-010, T-011 |
+| Done | 11 | T-001, T-002, T-003, T-004, T-005, T-006, T-007, T-008, T-009, T-010 |
+| Ready | 1 | T-011 |
 | Blocked | 0 | - |
 
 ---
 
 ## Ready - Work These Next
-
-### T-010: Integration tests with VS Code extension host *(low priority)*
-
-**Goal:** Set up real VS Code extension host tests.
-
-**Context:**
-- Current tests are pure unit tests with mocked VS Code API (203 tests, 11 suites)
-- Integration tests verify the extension actually activates, registers commands, and renders webviews
-- Uses `@vscode/test-electron` (officially recommended by VS Code team)
-
-**What to do:**
-1. Install `@vscode/test-electron` as dev dependency
-2. Create `src/test/suite/` directory with integration test files
-3. Create `src/test/suite/index.ts` - Mocha test runner entry
-4. Create `src/test/runTest.ts` - launches VS Code with the extension and test suite
-5. Test: extension activation, command registration, manifest loading from a fixture `.ai/handoff/` directory
-6. Add `test:integration` script to `package.json`
-
-**Files:**
-- `src/test/suite/extension.test.ts`: create
-- `src/test/suite/index.ts`: test runner entry
-- `src/test/runTest.ts`: launch script
-- `package.json`: add `test:integration` script
-
-**Definition of done:**
-- [ ] At least 5 integration tests
-- [ ] Tests pass locally
-- [ ] Test script in package.json
-
----
 
 ### T-011: Dashboard task filtering and sorting *(low priority)*
 
@@ -54,7 +24,8 @@
 
 **Context:**
 - T-005 (aggregated all-repos view) is done - this task is unblocked
-- The "All Open Tasks" section exists in sidebar but has no filters
+- The "All Open Tasks" tree view exists in sidebar but has no filters
+- Filter/clear commands already declared in package.json and registered in commands.ts
 
 **What to do:**
 1. Add filter dropdown/chips above the all-tasks table: by status, by priority, by repo
@@ -64,6 +35,8 @@
 
 **Files:**
 - `src/sidebar.ts`: add filter controls to all-open-tasks section
+- `src/task-tree.ts`: already has `setFilter()` for text filtering - extend with structured filters
+- `src/commands.ts`: `aahp.filterTasks` and `aahp.clearFilter` already registered
 
 **Definition of done:**
 - [ ] Filter by status works
@@ -83,11 +56,11 @@
 
 | Task | What Was Done | When |
 |------|--------------|------|
+| T-010: Integration tests with VS Code extension host | @vscode/test-electron infrastructure: runTest.ts launcher, Mocha test runner, 10 integration tests (activation, command registration, dashboard, keybindings, chat participant, views). Fixed duplicate aahp.copyContext command registration. CI updated with xvfb integration test step. | 2026-02-28 |
 | T-009: Test chat-participant and context-injector | 58 new tests: chat-participant (45 tests: all slash commands, free-form AI, followup provider) and context-injector (13 tests: copy command, banner notification). Total: 203 tests, 11 suites. | 2026-02-28 |
 | T-008: GitHub release workflow | Tag-triggered release.yml: compile, lint, test, vsce package, create GitHub Release with .vsix asset, extract CHANGELOG notes, optional Marketplace publish via VSCE_PAT | 2026-02-28 |
 | T-003: Publish to VS Code Marketplace | Extension icon, gallery metadata, publish script, .vscodeignore cleanup, CHANGELOG v0.3.0. Ready to publish with VSCE_PAT. | 2026-02-28 |
 | T-007: Agent retry on failure | Retry loop with exponential backoff (30s * 2^n), configurable max retries, dashboard retry button, 12 new tests (129 total) | 2026-02-28 |
-| T-006: Task creation from dashboard | "New Task" button + aahp.createTask command, prompts for title/priority/deps, writes to MANIFEST.json | 2026-02-27 |
 
 ---
 
@@ -109,6 +82,8 @@
 | Build config | `tsconfig.json` |
 | Test config | `vitest.config.ts` |
 | Unit tests | `src/__tests__/*.test.ts` |
+| Integration tests | `src/test/suite/extension.test.ts` |
+| Integration runner | `src/test/runTest.ts` |
 | VS Code mocks | `src/__mocks__/vscode.ts` |
 | Extension icon | `assets/icon.png` |
 | Icon generator | `scripts/generate-icon.js` |

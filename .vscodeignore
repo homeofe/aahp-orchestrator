@@ -14,3 +14,4 @@ node_modules/**
 **/*.ts
 out/__tests__/**
 out/__mocks__/**
+out/test/**

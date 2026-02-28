@@ -1,0 +1,37 @@
+{
+  "aahp_version": "3.0",
+  "project": "test-project",
+  "last_session": {
+    "agent": "test-agent",
+    "session_id": "test-session-001",
+    "timestamp": "2026-01-01T00:00:00.000Z",
+    "commit": "abc1234",
+    "phase": "implementation",
+    "duration_minutes": 5
+  },
+  "files": {},
+  "quick_context": "Test project for integration testing.",
+  "token_budget": {
+    "manifest_only": 80,
+    "manifest_plus_core": 1200,
+    "full_read": 5000
+  },
+  "next_task_id": 3,
+  "tasks": {
+    "T-001": {
+      "title": "First test task",
+      "status": "done",
+      "priority": "high",
+      "depends_on": [],
+      "created": "2026-01-01T00:00:00.000Z",
+      "completed": "2026-01-01T01:00:00.000Z"
+    },
+    "T-002": {
+      "title": "Second test task",
+      "status": "ready",
+      "priority": "medium",
+      "depends_on": [],
+      "created": "2026-01-01T00:00:00.000Z"
+    }
+  }
+}
