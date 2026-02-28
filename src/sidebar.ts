@@ -18,6 +18,9 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
   private _requestRefresh?: () => void
   private _renderTimer?: ReturnType<typeof setTimeout>
   private _batchMode = false
+  /** Set when endBatchUpdate() fires but _view is undefined - signals that
+   *  resolveWebviewView() should do a direct render when it's finally called. */
+  private _pendingPostBatchRender = false
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -39,6 +42,10 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
         delete this._renderTimer
       }
       this._view.webview.html = this._getHtml(this._view.webview)
+    } else {
+      // View hasn't been resolved yet (sidebar not visible during activation).
+      // Signal that resolveWebviewView should do a direct render when called.
+      this._pendingPostBatchRender = true
     }
   }
 
@@ -141,9 +148,21 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
     // CSP nonce and forces a full webview reload.
     //
     // Outside batch mode (user opens sidebar after startup), render immediately.
-    if (!wasBatch) {
+    // Also render if endBatchUpdate() already ran but couldn't because the view
+    // wasn't resolved yet (_pendingPostBatchRender flag).
+    if (!wasBatch || this._pendingPostBatchRender) {
+      this._pendingPostBatchRender = false
       webviewView.webview.html = this._getHtml(webviewView.webview)
     }
+
+    // Safety net: on Windows, the webview may not reliably display the first
+    // HTML set during rapid startup initialization. Schedule a deferred
+    // re-render to ensure the dashboard is never blank after activation.
+    setTimeout(() => {
+      if (this._view && !this._batchMode) {
+        this._view.webview.html = this._getHtml(this._view.webview)
+      }
+    }, 300)
 
     // Re-render with fresh state whenever the sidebar becomes visible again
     webviewView.onDidChangeVisibility(() => {

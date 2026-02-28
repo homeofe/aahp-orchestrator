@@ -190,10 +190,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // but getDevRoot() still points to a valid directory with AAHP repos.
   const hasAahpContent = currentCtx || getDevRoot()
   if (hasAahpContent) {
-    // Delay slightly to allow VS Code to fully initialize before opening the view
+    // Delay to allow VS Code to fully initialize before opening the view.
+    // After focusing, trigger a refresh to guarantee the dashboard shows all data -
+    // this handles edge cases where resolveWebviewView fires before all state
+    // (log history, session state) has been loaded during activation.
     setTimeout(() => {
       vscode.commands.executeCommand('aahp.dashboard.focus').then(
-        () => {}, // Success - no-op
+        () => {
+          // After the sidebar is focused and resolveWebviewView has run,
+          // do one more refresh to ensure the dashboard has complete data
+          refreshAll()
+        },
         () => {
           // Silently fail if view focus doesn't work (e.g., VS Code not fully ready)
         }
