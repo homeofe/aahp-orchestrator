@@ -240,8 +240,10 @@ body {
 
 /* Task table */
 .task-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.task-table td { padding: 3px 4px; vertical-align: top; }
+.task-table td { padding: 3px 4px; vertical-align: middle; }
+.task-table tr { cursor: default; }
 .task-table tr:hover td { background: var(--vscode-list-hoverBackground); }
+.task-table td.task-actions { white-space: nowrap; text-align: right; min-width: 50px; }
 .task-id { font-family: var(--vscode-editor-font-family, monospace); font-size: 10px; opacity: 0.5; }
 .pri-high { color: #f14c4c; }
 .pri-medium { color: #cca700; }
@@ -337,18 +339,20 @@ h2 { font-size: 14px; margin: 0 0 4px; }
 
 /* GitHub link */
 .gh-link {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   font-size: 9px;
   font-weight: bold;
-  padding: 0 4px;
+  padding: 1px 5px;
   margin-left: 4px;
   border-radius: 3px;
   background: var(--vscode-badge-background);
   color: var(--vscode-badge-foreground);
   text-decoration: none;
   cursor: pointer;
-  vertical-align: middle;
-  line-height: 16px;
+  flex-shrink: 0;
+  height: 18px;
+  line-height: 18px;
 }
 .gh-link:hover {
   background: var(--vscode-focusBorder);
@@ -366,11 +370,19 @@ h2 { font-size: 14px; margin: 0 0 4px; }
 .ns-repo-header:hover { opacity: 0.8; }
 .ns-item {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 5px;
   font-size: 12px;
   padding: 2px 0 2px 8px;
   border-left: 2px solid transparent;
+  cursor: default;
+}
+.ns-item .ns-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .ns-item.ns-ready { border-left-color: #4ec9b0; }
 .ns-item.ns-in_progress { border-left-color: #569cd6; }
@@ -389,30 +401,31 @@ h2 { font-size: 14px; margin: 0 0 4px; }
   cursor: pointer;
 }
 
-/* Fix task button */
+/* Fix task button (play) */
 .fix-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
-  font-size: 9px;
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
   padding: 0;
-  margin-left: auto;
+  margin-left: 2px;
   flex-shrink: 0;
-  border: none;
+  border: 1px solid var(--vscode-widget-border, rgba(128,128,128,0.3));
   border-radius: 3px;
-  background: transparent;
+  background: var(--vscode-button-secondaryBackground, rgba(128,128,128,0.15));
   color: var(--vscode-foreground);
-  opacity: 0.4;
+  opacity: 0.7;
   cursor: pointer;
   transition: opacity 0.15s, background 0.15s;
 }
 .fix-btn:hover {
   opacity: 1;
-  background: var(--vscode-button-secondaryBackground);
-  color: var(--vscode-button-secondaryForeground);
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
 }
+
 `
   }
 
@@ -624,8 +637,11 @@ h2 { font-size: 14px; margin: 0 0 4px; }
           ? `<a class="gh-link" data-cmd="openUrl" data-url="${escHtml(repo.githubUrl)}/issues?q=${escHtml(item.taskId)}" title="Search GitHub Issues for ${escHtml(item.taskId)}">GH</a>`
           : ''
 
-        html += `<div class="ns-item ns-${item.section}">
-          ${idLabel}<span>${escHtml(item.title)}</span>${priLabel}${ghIssueBtn}${fixBtn}
+        const dblData = item.taskId
+          ? ` data-dbl="fixTask" data-repo-path="${escHtml(repo.repoPath)}" data-task-id="${escHtml(item.taskId)}"`
+          : ''
+        html += `<div class="ns-item ns-${item.section}"${dblData}>
+          ${idLabel}<span class="ns-title">${escHtml(item.title)}</span>${priLabel}${ghIssueBtn}${fixBtn}
         </div>`
 
         if (item.detail) {
@@ -737,7 +753,10 @@ h2 { font-size: 14px; margin: 0 0 4px; }
         ? `<a class="gh-link" data-cmd="openUrl" data-url="${escHtml(repoGhUrl)}/issues?q=${escHtml(id)}" title="Search GitHub Issues for ${escHtml(id)}">GH</a>`
         : ''
 
-      html += `<tr>
+      const dblAttr = t.status !== 'done'
+        ? ` data-dbl="fixTask" data-repo-path="${escHtml(repoPath)}" data-task-id="${escHtml(id)}"`
+        : ''
+      html += `<tr${dblAttr}>
         <td class="task-id">${escHtml(id)}</td>
         <td style="font-size:11px;opacity:.6;width:20px">${icon}</td>
         <td>${escHtml(t.title)}</td>
@@ -749,7 +768,7 @@ h2 { font-size: 14px; margin: 0 0 4px; }
             ).join('')}
           </select>
         </td>
-        <td>${ghIssueBtn}${fixBtn}</td>
+        <td class="task-actions">${ghIssueBtn}${fixBtn}</td>
       </tr>`
     }
 
@@ -793,6 +812,18 @@ h2 { font-size: 14px; margin: 0 0 4px; }
         if (el.dataset.taskId) data.taskId = el.dataset.taskId
         if (el.dataset.url) data.url = el.dataset.url
         if (cmd === 'openUrl') { e.stopPropagation(); }
+        post(cmd, data)
+      })
+
+      document.addEventListener('dblclick', function(e) {
+        var el = e.target.closest('[data-dbl]')
+        if (!el) return
+        e.preventDefault()
+        e.stopPropagation()
+        var cmd = el.dataset.dbl
+        var data = {}
+        if (el.dataset.repoPath) data.repoPath = el.dataset.repoPath
+        if (el.dataset.taskId) data.taskId = el.dataset.taskId
         post(cmd, data)
       })
 

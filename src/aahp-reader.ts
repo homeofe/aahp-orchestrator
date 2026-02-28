@@ -102,7 +102,7 @@ export function parseNextActions(markdown: string): NextActionItem[] {
       const taskHeading = trimmed.match(/^#{2,3}\s+(?:~~)?(?:(T-\d+)[:\s]+)?(.+?)(?:~~)?(?:\s*\*\((high|medium|low)\s*priority\)\*)?$/)
       if (taskHeading && taskHeading[2]) {
         const rawTitle = taskHeading[2].replace(/\*+/g, '').trim()
-        if (rawTitle && !/^(ready|blocked|done|in.?progress|recently completed|status summary|reference|open tasks?)$/i.test(rawTitle)) {
+        if (rawTitle && !/^(ready|blocked|done|in.?progress|recently completed|status summary|reference|open tasks?)\b/i.test(rawTitle)) {
           const isStrikethrough = trimmed.includes('~~')
           const itemSection = isStrikethrough ? 'done' : currentSection
 

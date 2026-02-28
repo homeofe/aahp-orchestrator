@@ -311,10 +311,28 @@ export function registerCommands(
         }
 
         const repoName = path.basename(repoPath)
+
+        // Check for unresolved dependencies
+        const deps: string[] = task.depends_on ?? []
+        const unresolvedDeps: string[] = []
+        for (const depId of deps) {
+          const depTask = manifest.tasks?.[depId]
+          if (depTask && depTask.status !== 'done') {
+            unresolvedDeps.push(`${depId}: ${depTask.title} (${depTask.status})`)
+          }
+        }
+
+        let confirmMsg = `AAHP: Run agent to fix [${taskId}] "${task.title}" in ${repoName}?`
+        const buttons: string[] = ['Run Agent']
+        if (unresolvedDeps.length > 0) {
+          confirmMsg = `AAHP: [${taskId}] has unresolved dependencies:\n\n${unresolvedDeps.join('\n')}\n\nRun anyway?`
+          buttons.push('Cancel')
+        }
+
         const confirm = await vscode.window.showInformationMessage(
-          `AAHP: Run agent to fix [${taskId}] ${task.title} in ${repoName}?`,
+          confirmMsg,
           { modal: true },
-          'Run Agent'
+          ...buttons
         )
         if (confirm !== 'Run Agent') return
 
