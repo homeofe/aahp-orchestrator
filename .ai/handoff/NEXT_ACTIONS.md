@@ -10,39 +10,20 @@
 
 | Status | Count | Tasks |
 |--------|-------|-------|
-| Done | 11 | T-001, T-002, T-003, T-004, T-005, T-006, T-007, T-008, T-009, T-010 |
-| Ready | 1 | T-011 |
+| Done | 11 | T-001, T-002, T-004, T-005, T-006, T-007, T-008, T-009, T-010, T-011 |
+| Ready | 0 | - |
 | Blocked | 0 | - |
+| Pending | 1 | T-003 |
 
 ---
 
 ## Ready - Work These Next
 
-### T-011: Dashboard task filtering and sorting *(low priority)*
+*(No ready tasks - all development tasks are complete.)*
 
-**Goal:** Add filter controls to the aggregated task view.
-
-**Context:**
-- T-005 (aggregated all-repos view) is done - this task is unblocked
-- The "All Open Tasks" tree view exists in sidebar but has no filters
-- Filter/clear commands already declared in package.json and registered in commands.ts
-
-**What to do:**
-1. Add filter dropdown/chips above the all-tasks table: by status, by priority, by repo
-2. Use webview message passing to persist filter state
-3. Apply filters to the rendered task list
-4. Add sort options: by priority (default), by age, by repo name
-
-**Files:**
-- `src/sidebar.ts`: add filter controls to all-open-tasks section
-- `src/task-tree.ts`: already has `setFilter()` for text filtering - extend with structured filters
-- `src/commands.ts`: `aahp.filterTasks` and `aahp.clearFilter` already registered
-
-**Definition of done:**
-- [ ] Filter by status works
-- [ ] Filter by priority works
-- [ ] Filter by repo works
-- [ ] Filters persist within session
+T-003 (Publish to VS Code Marketplace) is pending human action: the project owner
+needs to configure a VSCE_PAT secret. Once that is done, run `npm run publish`
+or push a `v*` tag to trigger the release workflow.
 
 ---
 
@@ -56,11 +37,11 @@
 
 | Task | What Was Done | When |
 |------|--------------|------|
-| T-010: Integration tests with VS Code extension host | @vscode/test-electron infrastructure: runTest.ts launcher, Mocha test runner, 10 integration tests (activation, command registration, dashboard, keybindings, chat participant, views). Fixed duplicate aahp.copyContext command registration. CI updated with xvfb integration test step. | 2026-02-28 |
+| T-011: Dashboard task filtering and sorting | New "All Tasks" section in dashboard webview with filter controls (status, priority, repo) and sorting (priority then age). Pure functions in src/task-filter.ts with 31 new tests. Total: 234 unit tests (12 suites). | 2026-02-28 |
+| T-010: Integration tests with VS Code extension host | @vscode/test-electron infrastructure: runTest.ts launcher, Mocha test runner, 10 integration tests (activation, command registration, dashboard, keybindings, chat participant, views). CI updated with xvfb integration test step. | 2026-02-28 |
 | T-009: Test chat-participant and context-injector | 58 new tests: chat-participant (45 tests: all slash commands, free-form AI, followup provider) and context-injector (13 tests: copy command, banner notification). Total: 203 tests, 11 suites. | 2026-02-28 |
 | T-008: GitHub release workflow | Tag-triggered release.yml: compile, lint, test, vsce package, create GitHub Release with .vsix asset, extract CHANGELOG notes, optional Marketplace publish via VSCE_PAT | 2026-02-28 |
-| T-003: Publish to VS Code Marketplace | Extension icon, gallery metadata, publish script, .vscodeignore cleanup, CHANGELOG v0.3.0. Ready to publish with VSCE_PAT. | 2026-02-28 |
-| T-007: Agent retry on failure | Retry loop with exponential backoff (30s * 2^n), configurable max retries, dashboard retry button, 12 new tests (129 total) | 2026-02-28 |
+| T-007: Agent retry on failure | Retry loop with exponential backoff (30s * 2^n), configurable max retries, dashboard retry button, 12 new tests | 2026-02-28 |
 
 ---
 
@@ -75,6 +56,7 @@
 | Agent spawner | `src/agent-spawner.ts` |
 | Session monitor | `src/session-monitor.ts` |
 | Sidebar dashboard | `src/sidebar.ts` |
+| Task filter/sort | `src/task-filter.ts` |
 | Status bar | `src/statusbar.ts` |
 | Commands | `src/commands.ts` |
 | Task tree view | `src/task-tree.ts` |

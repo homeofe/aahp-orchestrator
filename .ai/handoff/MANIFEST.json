@@ -3,9 +3,9 @@
   "project": "aahp-orchestrator",
   "last_session": {
     "agent": "claude-code",
-    "session_id": "t010-integration-tests-2026-02-28",
-    "timestamp": "2026-02-28T14:48:00.000Z",
-    "commit": "0f42f78",
+    "session_id": "t011-dashboard-filtering-2026-02-28",
+    "timestamp": "2026-02-28T16:15:00.000Z",
+    "commit": "fe60954",
     "phase": "implementation",
     "duration_minutes": 15
   },
@@ -53,7 +53,7 @@
       "summary": "5-phase AAHP pipeline. VS Code extension specific: webview CSP, try/catch, vsce package notes."
     }
   },
-  "quick_context": "aahp-orchestrator v0.3.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Marketplace-ready with icon, metadata, and publish script. 203 unit tests (11 suites) + 10 integration tests (@vscode/test-electron), CI pipeline with xvfb integration tests, tag-triggered release workflow. To publish: set VSCE_PAT and run npm run publish or push a v* tag. 1 open task: filtering (T-011).",
+  "quick_context": "aahp-orchestrator v0.3.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Marketplace-ready with icon, metadata, and publish script. 234 unit tests (12 suites) + 10 integration tests (@vscode/test-electron), CI pipeline with xvfb integration tests, tag-triggered release workflow. Dashboard has aggregated task filtering (status/priority/repo) and sorting. To publish: set VSCE_PAT and run npm run publish or push a v* tag. All tasks done except T-003 (pending human VSCE_PAT).",
   "token_budget": {
     "manifest_only": 80,
     "manifest_plus_core": 1200,
@@ -151,17 +151,18 @@
       "depends_on": [],
       "created": "2026-02-27T22:00:00.000Z",
       "notes": "Set up @vscode/test-electron for integration tests that run inside a real VS Code instance. Test activation, command registration, webview rendering.",
-      "completed": "2026-02-28T14:48:00.000Z"
+      "completed": "2026-02-28T14:49:36.754Z"
     },
     "T-011": {
       "title": "Dashboard task filtering and sorting",
-      "status": "ready",
+      "status": "done",
       "priority": "low",
       "depends_on": [
         "T-005"
       ],
       "created": "2026-02-27T22:00:00.000Z",
-      "notes": "Add filter controls to the aggregated task view: filter by status (ready/blocked/done), by priority (high/medium/low), by repo. Sort by priority then age."
+      "notes": "Add filter controls to the aggregated task view: filter by status (ready/blocked/done), by priority (high/medium/low), by repo. Sort by priority then age.",
+      "completed": "2026-02-28T16:15:00.000Z"
     }
   }
 }
