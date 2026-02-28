@@ -3,11 +3,11 @@
   "project": "aahp-orchestrator",
   "last_session": {
     "agent": "claude-code",
-    "session_id": "t008-release-workflow-2026-02-28",
-    "timestamp": "2026-02-28T12:50:40.576Z",
-    "commit": "a662e4f",
+    "session_id": "t009-test-chat-context-2026-02-28",
+    "timestamp": "2026-02-28T14:49:00.000Z",
+    "commit": "13fff80",
     "phase": "implementation",
-    "duration_minutes": 2
+    "duration_minutes": 15
   },
   "files": {
     "STATUS.md": {
@@ -20,7 +20,7 @@
       "checksum": "sha256:(pending)",
       "updated": "2026-02-28T00:48:00.000Z",
       "lines": 150,
-      "summary": "3 open tasks: test coverage (T-009/T-010), filtering (T-011). 9 done."
+      "summary": "2 open tasks: integration tests (T-010), filtering (T-011). 10 done."
     },
     "LOG.md": {
       "checksum": "sha256:(pending)",
@@ -53,7 +53,7 @@
       "summary": "5-phase AAHP pipeline. VS Code extension specific: webview CSP, try/catch, vsce package notes."
     }
   },
-  "quick_context": "aahp-orchestrator v0.3.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Marketplace-ready with icon, metadata, and publish script. 145 unit tests, CI pipeline, tag-triggered release workflow. To publish: set VSCE_PAT and run npm run publish or push a v* tag. 3 open tasks: test coverage (T-009/T-010), filtering (T-011).",
+  "quick_context": "aahp-orchestrator v0.3.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Marketplace-ready with icon, metadata, and publish script. 203 unit tests (11 suites), CI pipeline, tag-triggered release workflow. To publish: set VSCE_PAT and run npm run publish or push a v* tag. 2 open tasks: integration tests (T-010), filtering (T-011).",
   "token_budget": {
     "manifest_only": 80,
     "manifest_plus_core": 1200,
@@ -137,11 +137,12 @@
     },
     "T-009": {
       "title": "Test chat-participant and context-injector",
-      "status": "ready",
+      "status": "done",
       "priority": "medium",
       "depends_on": [],
       "created": "2026-02-27T22:00:00.000Z",
-      "notes": "chat-participant and context-injector are 'assumed' - no unit tests. Add tests for slash command handlers (help, status, tasks, next, done, phase) and context clipboard copy."
+      "notes": "58 tests added: chat-participant (45 tests covering all slash commands, free-form AI, followup provider) and context-injector (13 tests covering copy command, banner notification). Total test count: 203.",
+      "completed": "2026-02-28T14:49:00.000Z"
     },
     "T-010": {
       "title": "Integration tests with VS Code extension host",

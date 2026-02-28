@@ -10,51 +10,20 @@
 
 | Status | Count | Tasks |
 |--------|-------|-------|
-| Done | 9 | T-001, T-002, T-003, T-004, T-005, T-006, T-007, T-008 |
-| Ready | 3 | T-009, T-010, T-011 |
+| Done | 10 | T-001, T-002, T-003, T-004, T-005, T-006, T-007, T-008, T-009 |
+| Ready | 2 | T-010, T-011 |
 | Blocked | 0 | - |
 
 ---
 
 ## Ready - Work These Next
 
-### T-009: Test chat-participant and context-injector *(medium priority)*
-
-**Goal:** Add unit tests for the two untested modules.
-
-**Context:**
-- `chat-participant.ts` has 7 slash command handlers - each is a pure function taking a stream + context
-- `context-injector.ts` registers a clipboard copy command and shows a one-time banner
-- Both are currently "assumed" in trust state
-
-**What to do:**
-1. Create `src/__tests__/chat-participant.test.ts`
-2. Export handler functions from `chat-participant.ts` (or test through the participant)
-3. Mock `vscode.ChatResponseStream` as `{ markdown: vi.fn() }`
-4. Test each handler: handleHelp, handleStatus, handleTasks, handleNext, handleDone, handlePhase
-5. Create `src/__tests__/context-injector.test.ts`
-6. Test clipboard copy command and banner trigger behavior
-7. Update DASHBOARD.md and TRUST.md to mark both as verified
-
-**Files:**
-- `src/__tests__/chat-participant.test.ts`: create
-- `src/__tests__/context-injector.test.ts`: create
-- `src/chat-participant.ts`: export handler functions for testing
-
-**Definition of done:**
-- [ ] At least 15 tests for chat-participant handlers
-- [ ] At least 5 tests for context-injector
-- [ ] All tests pass (old + new)
-- [ ] CI passes
-
----
-
 ### T-010: Integration tests with VS Code extension host *(low priority)*
 
 **Goal:** Set up real VS Code extension host tests.
 
 **Context:**
-- Current tests are pure unit tests with mocked VS Code API
+- Current tests are pure unit tests with mocked VS Code API (203 tests, 11 suites)
 - Integration tests verify the extension actually activates, registers commands, and renders webviews
 - Uses `@vscode/test-electron` (officially recommended by VS Code team)
 
@@ -114,11 +83,11 @@
 
 | Task | What Was Done | When |
 |------|--------------|------|
+| T-009: Test chat-participant and context-injector | 58 new tests: chat-participant (45 tests: all slash commands, free-form AI, followup provider) and context-injector (13 tests: copy command, banner notification). Total: 203 tests, 11 suites. | 2026-02-28 |
 | T-008: GitHub release workflow | Tag-triggered release.yml: compile, lint, test, vsce package, create GitHub Release with .vsix asset, extract CHANGELOG notes, optional Marketplace publish via VSCE_PAT | 2026-02-28 |
 | T-003: Publish to VS Code Marketplace | Extension icon, gallery metadata, publish script, .vscodeignore cleanup, CHANGELOG v0.3.0. Ready to publish with VSCE_PAT. | 2026-02-28 |
 | T-007: Agent retry on failure | Retry loop with exponential backoff (30s * 2^n), configurable max retries, dashboard retry button, 12 new tests (129 total) | 2026-02-28 |
 | T-006: Task creation from dashboard | "New Task" button + aahp.createTask command, prompts for title/priority/deps, writes to MANIFEST.json | 2026-02-27 |
-| T-005: All-repos open task view | Added "All Open Tasks" tree view to sidebar, 103 tests passing | 2026-02-27 |
 
 ---
 
