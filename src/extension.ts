@@ -183,6 +183,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   refreshAll()
   dashboardProvider.endBatchUpdate()
 
+  // ── Auto-open dashboard on startup if AAHP context found ───────────────────
+  // Show the dashboard automatically so users can see tasks and status at a glance.
+  // This must happen after endBatchUpdate() to ensure data is ready for rendering.
+  if (currentCtx) {
+    // Delay slightly to allow VS Code to fully initialize before opening the view
+    setTimeout(() => {
+      vscode.commands.executeCommand('aahp.dashboard.focus').then(
+        () => {}, // Success - no-op
+        () => {
+          // Silently fail if view focus doesn't work (e.g., VS Code not fully ready)
+        }
+      )
+    }, 500)
+  }
+
   // ── Re-trigger refreshAll on config change (user edits settings.json) ────────
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(e => {
