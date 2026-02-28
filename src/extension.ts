@@ -106,7 +106,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Set the refresh callback BEFORE registering the webview provider to prevent
   // the race condition where resolveWebviewView fires before the callback exists
   dashboardProvider.setRefreshCallback(refreshAll)
-  dashboardProvider.update(currentCtx)
+
+  // ── Batch mode: suppress debounced re-renders during activation ─────────────
+  // Without this, every update() / updateRepoOverviews() / etc. triggers a
+  // debounced HTML rebuild (new CSP nonce = full webview reload). During
+  // activation that causes 4-6 rapid reloads, producing visible blank flashes
+  // on Windows and making the dashboard appear broken. Batch mode suppresses
+  // all debounced renders until endBatchUpdate() fires ONE clean render.
+  //
+  // NOTE: if resolveWebviewView fires during batch mode (sidebar was visible),
+  // it temporarily overrides batch mode and does a synchronous render with
+  // whatever data is available at that point. The endBatchUpdate() render at
+  // the end will pick up any state that arrived after that.
+  dashboardProvider.beginBatchUpdate()
 
   // NOW register providers - VS Code may immediately call resolveWebviewView here,
   // but the refresh callback is already set so the dashboard will populate correctly
@@ -123,12 +135,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   if (!currentCtx) {
     promptDevRootIfNeeded(context).then(() => refreshAll())
   }
-
-  // ── Clean startup: full refresh after all providers are registered ──────────
-  // Without this, the dashboard renders with incomplete state (no repo overviews,
-  // no focused repo, stale session data) because the initial activation only
-  // calls dashboardProvider.update() before scanAllRepoOverviews() is available.
-  refreshAll()
 
   // ── Chat participant (@aahp) ─────────────────────────────────────────────────
   context.subscriptions.push(
@@ -169,11 +175,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     context.subscriptions.push(d)
   }
 
-  // ── Final refresh after all async initialization is complete ────────────────
-  // This catches the case where resolveWebviewView fired during the awaits above
-  // but before session monitor / log store data was available. Now all state is
-  // populated, so this render will be complete.
+  // ── End batch mode: all async init complete, trigger ONE clean render ───────
+  // This replaces the previous pattern of calling refreshAll() 2-3 times during
+  // activation (each causing a full webview reload). Now we do one final
+  // refreshAll() that populates all state, then endBatchUpdate() triggers
+  // exactly one render with the complete data.
   refreshAll()
+  dashboardProvider.endBatchUpdate()
 
   // ── Re-trigger refreshAll on config change (user edits settings.json) ────────
   context.subscriptions.push(

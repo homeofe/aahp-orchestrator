@@ -17,8 +17,21 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
   private _logHistory: AgentLogEntry[] = []
   private _requestRefresh?: () => void
   private _renderTimer?: ReturnType<typeof setTimeout>
+  private _batchMode = false
 
   constructor(private readonly extensionUri: vscode.Uri) {}
+
+  /** Suppress debounced renders during bulk state updates (e.g. activation).
+   *  Call endBatchUpdate() when done to trigger a single render. */
+  public beginBatchUpdate(): void {
+    this._batchMode = true
+  }
+
+  /** End batch mode and trigger one debounced render with all accumulated state. */
+  public endBatchUpdate(): void {
+    this._batchMode = false
+    this._render()
+  }
 
   /** Register a callback that fires when the dashboard needs fresh data.
    *  This is called when the webview is first resolved and whenever it becomes visible,
@@ -67,6 +80,7 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
    *  Without this, refreshAll() triggers 3+ full HTML rebuilds in rapid succession. */
   private _render(): void {
     if (!this._view) return
+    if (this._batchMode) return   // suppress renders during bulk activation updates
     if (this._renderTimer) clearTimeout(this._renderTimer)
     this._renderTimer = setTimeout(() => {
       if (this._view) {
@@ -96,6 +110,11 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
     // is not yet resolved so all _render() calls are no-ops. By requesting a refresh
     // here, we ensure the extension re-scans all repos and pushes fresh data into
     // the provider BEFORE the first render.
+    //
+    // Temporarily disable batch mode so the refresh can populate state even if
+    // activate() is still running with batch mode on.
+    const wasBatch = this._batchMode
+    this._batchMode = true  // suppress debounced renders from the refresh
     try {
       if (this._requestRefresh) {
         this._requestRefresh()
@@ -103,39 +122,17 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
     } catch (e) {
       console.error('AAHP: Error during initial dashboard refresh', e)
     }
+    this._batchMode = wasBatch
 
-    // Cancel any debounced renders that refreshAll() triggered - they would
-    // re-set webview.html with a new CSP nonce, causing a visible blank flash.
-    // The synchronous render below already has the correct data.
+    // Cancel any debounced renders that somehow slipped through - we are about
+    // to do a synchronous render which is always more up-to-date.
     if (this._renderTimer) {
       clearTimeout(this._renderTimer)
       delete this._renderTimer
     }
 
-    // Synchronous render with the freshly loaded data (no debounce)
+    // Synchronous render with the freshly loaded data (no debounce, no flicker)
     webviewView.webview.html = this._getHtml(webviewView.webview)
-
-    // Safety-net: re-render after a short delay to pick up any data that arrives
-    // late during activate() (e.g. session monitor clearing, log store loading).
-    // This handles the case where resolveWebviewView fires before activate() has
-    // finished all its async initialization.
-    setTimeout(() => {
-      if (this._view && this._view === webviewView) {
-        try {
-          if (this._requestRefresh) {
-            this._requestRefresh()
-          }
-        } catch (e) {
-          console.error('AAHP: Error during delayed dashboard refresh', e)
-        }
-        // Cancel debounced renders from the refresh, render synchronously
-        if (this._renderTimer) {
-          clearTimeout(this._renderTimer)
-          delete this._renderTimer
-        }
-        this._view.webview.html = this._getHtml(this._view.webview)
-      }
-    }, 800)
 
     // Re-render with fresh state whenever the sidebar becomes visible again
     webviewView.onDidChangeVisibility(() => {
