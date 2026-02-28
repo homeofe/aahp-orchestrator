@@ -211,11 +211,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   })
   if (conflicting.length > 0) {
     const names = conflicting.map(e => e.id).join(', ')
+    // Use modal warning - non-modal notifications are too easy to miss and this
+    // conflict silently breaks the dashboard (duplicate view IDs, command routing)
     vscode.window.showWarningMessage(
       `AAHP Orchestrator: Conflicting extensions detected (${names}). ` +
-      'These may break context menus and commands. Uninstall old AAHP extensions for best results.',
-      'Uninstall Conflicts',
-      'Dismiss'
+      'These WILL break the dashboard and commands because they register duplicate view IDs. ' +
+      'Uninstall the old extensions to fix this.',
+      { modal: true },
+      'Uninstall Conflicts'
     ).then(async choice => {
       if (choice === 'Uninstall Conflicts') {
         for (const ext of conflicting) {
@@ -223,7 +226,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             await vscode.commands.executeCommand('workbench.extensions.uninstallExtension', ext.id)
           } catch { /* best-effort */ }
         }
-        vscode.window.showInformationMessage('AAHP: Conflicting extensions removed. Please reload VS Code.')
+        vscode.window.showInformationMessage('AAHP: Conflicting extensions removed. Please reload VS Code.', 'Reload').then(r => {
+          if (r === 'Reload') vscode.commands.executeCommand('workbench.action.reloadWindow')
+        })
       }
     })
   }
