@@ -130,10 +130,34 @@
         "title": "AAHP: Fix Task"
       },
       {
+        "command": "aahp.launchTask",
+        "title": "Launch Agent",
+        "icon": "$(play)"
+      },
+      {
+        "command": "aahp.openTaskOnGitHub",
+        "title": "Open on GitHub",
+        "icon": "$(github)"
+      },
+      {
         "command": "aahp.refreshAll",
         "title": "AAHP: Refresh Dashboard"
       }
     ],
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "aahp.launchTask",
+          "when": "view == aahp.allTasks && viewItem == task",
+          "group": "inline@1"
+        },
+        {
+          "command": "aahp.openTaskOnGitHub",
+          "when": "view == aahp.allTasks && viewItem == task",
+          "group": "inline@2"
+        }
+      ]
+    },
     "viewsContainers": {
       "activitybar": [
         {

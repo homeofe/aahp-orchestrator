@@ -7,10 +7,12 @@ import {
   refreshManifestChecksums,
   saveManifest,
   getWorkspaceRoot,
+  parseNextActions,
 } from './aahp-reader'
 import { scanAllRepos, spawnAllAgents, retryFailedAgent, getDevRoot, AgentRun } from './agent-spawner'
 import { SessionMonitor } from './session-monitor'
 import { AahpDashboardProvider } from './sidebar'
+import { FlatTask } from './task-tree'
 const PHASES = ['research', 'architecture', 'implementation', 'review', 'fix', 'release']
 
 export function registerCommands(
@@ -361,6 +363,120 @@ export function registerCommands(
       } catch (err) {
         vscode.window.showWarningMessage(`AAHP: Failed to read manifest - ${String(err)}`)
       }
+    }),
+
+    // ── Launch Task from Tree View (inline play button) ─────────────────────
+    vscode.commands.registerCommand('aahp.launchTask', async (element: FlatTask) => {
+      if (!element?.repoPath || !element?.taskId) {
+        vscode.window.showWarningMessage('AAHP: No task selected.')
+        return
+      }
+      const { repoPath, repoName, taskId, task } = element
+
+      const manifestPath = path.join(repoPath, '.ai', 'handoff', 'MANIFEST.json')
+      if (!fs.existsSync(manifestPath)) {
+        vscode.window.showWarningMessage('AAHP: No manifest found for this repo.')
+        return
+      }
+
+      try {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+
+        // Check for unresolved dependencies
+        const deps: string[] = task.depends_on ?? []
+        const unresolvedDeps: string[] = []
+        for (const depId of deps) {
+          const depTask = manifest.tasks?.[depId]
+          if (depTask && depTask.status !== 'done') {
+            unresolvedDeps.push(`[${depId}] ${depTask.title} (${depTask.status})`)
+          }
+        }
+
+        if (unresolvedDeps.length > 0) {
+          const choice = await vscode.window.showWarningMessage(
+            `Task [${taskId}] has unresolved dependencies:\n\n${unresolvedDeps.join('\n')}\n\nThese should be completed first.`,
+            { modal: true },
+            'Run Anyway',
+            'Cancel'
+          )
+          if (choice !== 'Run Anyway') return
+        } else {
+          const confirm = await vscode.window.showInformationMessage(
+            `Launch agent for [${taskId}] "${task.title}" in ${repoName}?`,
+            { modal: true },
+            'Run Agent'
+          )
+          if (confirm !== 'Run Agent') return
+        }
+
+        // Build enhanced prompt with NEXT_ACTIONS.md task detail
+        let taskDetail = ''
+        const nextActionsPath = path.join(repoPath, '.ai', 'handoff', 'NEXT_ACTIONS.md')
+        if (fs.existsSync(nextActionsPath)) {
+          const nextActionsMd = fs.readFileSync(nextActionsPath, 'utf8')
+          // Extract the section for this task ID
+          const taskSectionRegex = new RegExp(
+            `### ${taskId.replace(/[-]/g, '\\$&')}[:\\s].*?(?=\\n### T-\\d|\\n---\\n|\\n## |$)`,
+            's'
+          )
+          const match = nextActionsMd.match(taskSectionRegex)
+          if (match) {
+            taskDetail = match[0].trim()
+          }
+        }
+
+        const repo = {
+          repoPath,
+          repoName,
+          manifestPath,
+          taskId,
+          taskTitle: task.title,
+          taskPriority: task.priority ?? 'medium',
+          phase: manifest.last_session?.phase ?? 'unknown',
+          quickContext: manifest.quick_context ?? '',
+          ...(taskDetail ? { taskDetail } : {}),
+        }
+
+        vscode.window.showInformationMessage(`AAHP: Spawning agent for ${repoName} [${taskId}]...`)
+
+        spawnAllAgents([repo], runs => { onAgentRuns?.(runs) }, monitor, 1).then(finalRuns => {
+          const r = finalRuns[0]
+          if (r?.committed) {
+            vscode.window.showInformationMessage(`AAHP: ${repoName} [${taskId}] committed.`)
+          } else {
+            vscode.window.showInformationMessage(`AAHP: ${repoName} [${taskId}] agent finished - review output.`)
+          }
+          reloadCtx()
+        })
+      } catch (err) {
+        vscode.window.showWarningMessage(`AAHP: Failed to launch task - ${String(err)}`)
+      }
+    }),
+
+    // ── Open Task on GitHub (tree view inline button) ──────────────────────
+    vscode.commands.registerCommand('aahp.openTaskOnGitHub', async (element: FlatTask) => {
+      if (!element?.repoPath || !element?.taskId) return
+
+      // Detect GitHub URL from git config
+      const gitConfigPath = path.join(element.repoPath, '.git', 'config')
+      let ghUrl: string | undefined
+      try {
+        const content = fs.readFileSync(gitConfigPath, 'utf8')
+        const sshMatch = content.match(/url\s*=\s*git@github\.com:(.+?)(?:\.git)?$/m)
+        if (sshMatch?.[1]) ghUrl = `https://github.com/${sshMatch[1]}`
+        else {
+          const httpsMatch = content.match(/url\s*=\s*(https:\/\/github\.com\/[^/]+\/[^/]+?)(?:\.git)?$/m)
+          if (httpsMatch?.[1]) ghUrl = httpsMatch[1]
+        }
+      } catch { /* ignore */ }
+
+      if (!ghUrl) {
+        vscode.window.showWarningMessage('AAHP: No GitHub remote found for this repo.')
+        return
+      }
+
+      const issueUrl = `${ghUrl}/issues?q=${encodeURIComponent(element.taskId)}`
+      vscode.env.openExternal(vscode.Uri.parse(issueUrl))
     }),
 
     // ── Refresh All (re-scan repos and NEXT_ACTIONS.md) ───────────────────────

@@ -15,6 +15,7 @@ export interface RepoTask {
   phase: string
   quickContext: string
   taskPriority: string
+  taskDetail?: string  // Full task description from NEXT_ACTIONS.md
 }
 
 export type AgentStatus = 'queued' | 'running' | 'done' | 'failed'
@@ -187,6 +188,25 @@ export function buildAgentPrompt(repo: RepoTask): string {
     .map(([id, t]: [string, any]) => `  [${id}] ${t.status.padEnd(12)} ${t.title} (${t.priority ?? 'medium'})`)
     .join('\n')
 
+  // Load NEXT_ACTIONS.md task detail if not already provided
+  let taskDetail = repo.taskDetail ?? ''
+  if (!taskDetail) {
+    const nextActionsPath = path.join(path.dirname(repo.manifestPath), 'NEXT_ACTIONS.md')
+    try {
+      const md = fs.readFileSync(nextActionsPath, 'utf8')
+      const re = new RegExp(
+        `### ${repo.taskId.replace(/[-]/g, '\\$&')}[:\\s].*?(?=\\n### T-\\d|\\n---\\n|\\n## |$)`,
+        's'
+      )
+      const m = md.match(re)
+      if (m) taskDetail = m[0].trim()
+    } catch { /* ignore */ }
+  }
+
+  const taskDetailBlock = taskDetail
+    ? `\n## Task Detail (from NEXT_ACTIONS.md)\n${taskDetail}\n`
+    : ''
+
   return `# AAHP v3 Agent Task - ${repo.repoName}
 
 ## Project
@@ -194,7 +214,7 @@ ${repo.quickContext}
 
 ## Phase: ${repo.phase}
 ## Active Task: [${repo.taskId}] ${repo.taskTitle}
-
+${taskDetailBlock}
 ## All Tasks
 ${tasksList}
 
