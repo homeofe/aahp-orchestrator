@@ -8,11 +8,11 @@
   "icon": "assets/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/elvatis/aahp-orchestrator.git"
+    "url": "https://github.com/homeofe/aahp-orchestrator.git"
   },
-  "homepage": "https://github.com/elvatis/aahp-orchestrator#readme",
+  "homepage": "https://github.com/homeofe/aahp-orchestrator#readme",
   "bugs": {
-    "url": "https://github.com/elvatis/aahp-orchestrator/issues"
+    "url": "https://github.com/homeofe/aahp-orchestrator/issues"
   },
   "engines": {
     "vscode": "^1.90.0"

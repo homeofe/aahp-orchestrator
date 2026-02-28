@@ -177,7 +177,7 @@ export function registerChatParticipant(
         stream.markdown(
           '⚠️ No `.ai/handoff/MANIFEST.json` found in this workspace.\n\n' +
           'Create one to enable zero-question orchestration. ' +
-          '[AAHP v3 spec](https://github.com/elvatis/AAHP)'
+          '[AAHP v3 spec](https://github.com/homeofe/AAHP)'
         )
         return
       }

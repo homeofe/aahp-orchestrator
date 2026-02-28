@@ -4,7 +4,7 @@
 
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/elvatis.aahp-orchestrator?label=Marketplace)](https://marketplace.visualstudio.com/items?itemName=elvatis.aahp-orchestrator)
 [![VS Code](https://img.shields.io/badge/VS%20Code-%5E1.90-blue)](https://code.visualstudio.com/)
-[![AAHP v3](https://img.shields.io/badge/AAHP-v3-green)](https://github.com/elvatis/AAHP)
+[![AAHP v3](https://img.shields.io/badge/AAHP-v3-green)](https://github.com/homeofe/AAHP)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## The AAHP Toolchain
@@ -14,7 +14,7 @@
 | Package | What it does | When to use |
 |---------|-------------|-------------|
 | **aahp-orchestrator** - you are here | VS Code extension. Injects AAHP context into Copilot/Claude Code while *you* code. Live status bar, `@aahp` chat, sidebar dashboard. | Every coding session - your human-in-the-loop assistant. |
-| **[aahp-runner](https://github.com/elvatis/aahp-runner)** | Autonomous CLI. Spawns Claude agents that implement tasks, run tests, and commit - no human input needed. Schedulable. | Overnight / CI - your unattended worker. |
+| **[aahp-runner](https://github.com/homeofe/aahp-runner)** | Autonomous CLI. Spawns Claude agents that implement tasks, run tests, and commit - no human input needed. Schedulable. | Overnight / CI - your unattended worker. |
 
 Together they cover the full AAHP loop: you plan and guide during the day - the runner works through tasks at night - you wake up to committed progress.
 
@@ -60,7 +60,7 @@ When you open a workspace with `.ai/handoff/MANIFEST.json`:
 | Double-click to launch | Double-click any task in Next Steps or task table to start an agent |
 | Dependency checking | When launching a task, warns about unresolved dependencies before proceeding |
 | GitHub links | GH buttons next to tasks link directly to GitHub Issues search for that task ID |
-| Agent retry | Failed agents can be retried with exponential backoff from the dashboard |
+| Agent retry | Failed tasks can be retried from the dashboard |
 | Task creation | Create new tasks with title, priority, and dependencies from the dashboard |
 | Task status editing | Change task status via dropdown in the task table |
 | Token budget display | Shows token usage split between Claude and Copilot backends |
@@ -128,6 +128,8 @@ The agent already knows your project, phase, conventions, and trust state - no e
 
 The sidebar dashboard supports several interaction patterns:
 
+Play/Run/Retry actions delegate task execution to `aahp-runner` by launching terminal commands with explicit `--repo-path` and `--task-id` arguments.
+
 | Action | Where | What happens |
 |--------|-------|-------------|
 | **Click a repo card** | Repo Grid section | Focuses that repo, showing its task table and project details |
@@ -136,9 +138,9 @@ The sidebar dashboard supports several interaction patterns:
 | **Double-click a task** | Next Steps or task table | Spawns an agent for that task (same as play button) |
 | **Change status dropdown** | Task table, status column | Updates the task status in MANIFEST.json |
 | **Click + New Task** | Bottom of task table | Opens dialog to create a new task |
-| **Click Retry** | Failed agent card | Retries the failed agent with exponential backoff |
-| **Click Run All Agents** | Top of dashboard | Runs agents for all repos in parallel |
-| **Click Run [repo]** | Top of dashboard (when focused) | Runs agent for the focused repo only |
+| **Click Retry** | Failed agent card | Re-runs that exact task via `aahp-runner` |
+| **Click Run All Agents** | Top of dashboard | Runs `aahp-runner` for all repos |
+| **Click Run [repo]** | Top of dashboard (when focused) | Runs `aahp-runner` for the focused repo/task |
 | **Click Refresh** | Next Steps section header | Re-scans all repos and reloads NEXT_ACTIONS.md |
 | **Click section headers** | Any collapsible section | Collapse/expand that section |
 
@@ -194,7 +196,7 @@ code --install-extension elvatis.aahp-orchestrator
 
 ### From .vsix (manual)
 
-Download the latest `.vsix` from [GitHub Releases](https://github.com/elvatis/aahp-orchestrator/releases), then:
+Download the latest `.vsix` from [GitHub Releases](https://github.com/homeofe/aahp-orchestrator/releases), then:
 ```bash
 code --install-extension aahp-orchestrator-0.3.0.vsix
 ```
@@ -204,7 +206,7 @@ code --install-extension aahp-orchestrator-0.3.0.vsix
 ## Requirements
 
 - VS Code >= 1.90
-- A workspace with `.ai/handoff/MANIFEST.json` ([AAHP v3 spec](https://github.com/elvatis/AAHP))
+- A workspace with `.ai/handoff/MANIFEST.json` ([AAHP v3 spec](https://github.com/homeofe/AAHP))
 - GitHub Copilot extension (for `@aahp` chat responses via LM API) or Claude Code extension
 
 ---
