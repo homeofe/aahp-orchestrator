@@ -4,10 +4,10 @@
   "last_session": {
     "agent": "claude-code",
     "session_id": "t003-marketplace-publish-2026-02-28",
-    "timestamp": "2026-02-28T00:48:00.000Z",
+    "timestamp": "2026-02-27T23:49:21.664Z",
     "commit": "ecb15e0",
     "phase": "implementation",
-    "duration_minutes": 15
+    "duration_minutes": 2
   },
   "files": {
     "STATUS.md": {
@@ -79,14 +79,14 @@
     },
     "T-003": {
       "title": "Publish to VS Code Marketplace",
-      "status": "done",
+      "status": "pending",
       "priority": "medium",
       "depends_on": [
         "T-004"
       ],
       "created": "2026-02-27T14:09:01.402Z",
-      "notes": "Extension is Marketplace-ready: icon, metadata, galleryBanner, publish script. To actually publish, set VSCE_PAT env var and run npm run publish.",
-      "completed": "2026-02-28T00:48:00.000Z"
+      "notes": "Needs VSCE_PAT GitHub Actions secret from project owner. T-004 dependency is done but still requires human to provide VSCE_PAT.",
+      "completed": "2026-02-27T23:49:21.664Z"
     },
     "T-004": {
       "title": "Add CHANGELOG.md",

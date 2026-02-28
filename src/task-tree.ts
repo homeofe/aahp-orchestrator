@@ -25,10 +25,20 @@ export class TaskTreeProvider implements vscode.TreeDataProvider<TreeElement> {
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
 
   private _overviews: RepoOverview[] = []
+  private _filterText = ''
 
   update(overviews: RepoOverview[]): void {
     this._overviews = overviews
     this._onDidChangeTreeData.fire()
+  }
+
+  setFilter(text: string): void {
+    this._filterText = text.toLowerCase()
+    this._onDidChangeTreeData.fire()
+  }
+
+  getFilter(): string {
+    return this._filterText
   }
 
   getTreeItem(element: TreeElement): vscode.TreeItem {
@@ -51,7 +61,17 @@ export class TaskTreeProvider implements vscode.TreeDataProvider<TreeElement> {
   // ── Internal ─────────────────────────────────────────────────────────────
 
   private _getRootGroups(): PriorityGroup[] {
-    const allTasks = flattenOpenTasks(this._overviews)
+    let allTasks = flattenOpenTasks(this._overviews)
+
+    // Apply search filter if set
+    if (this._filterText) {
+      allTasks = allTasks.filter(t =>
+        t.taskId.toLowerCase().includes(this._filterText) ||
+        t.task.title.toLowerCase().includes(this._filterText) ||
+        t.repoName.toLowerCase().includes(this._filterText)
+      )
+    }
+
     const byPriority = groupByPriority(allTasks)
     return (['high', 'medium', 'low'] as const)
       .map(p => ({ kind: 'priority-group' as const, priority: p, tasks: byPriority[p] }))

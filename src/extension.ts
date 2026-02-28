@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as path from 'path'
 import { loadAahpContext, getWorkspaceRoot, AahpContext, scanAllRepoOverviews } from './aahp-reader'
-import { createStatusBar, updateStatusBar } from './statusbar'
+import { createStatusBar, updateStatusBar, createAgentStatusBar, updateAgentStatusBar } from './statusbar'
 import { registerChatParticipant } from './chat-participant'
 import { registerContextInjector } from './context-injector'
 import { AahpDashboardProvider } from './sidebar'
@@ -9,6 +9,7 @@ import { registerCommands } from './commands'
 import { AgentRun, getDevRoot } from './agent-spawner'
 import { SessionMonitor } from './session-monitor'
 import { TaskTreeProvider } from './task-tree'
+import { AgentLogStore } from './agent-log'
 
 // ── Shared state ──────────────────────────────────────────────────────────────
 
@@ -68,6 +69,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const statusBar = createStatusBar()
   updateStatusBar(statusBar, currentCtx)
   context.subscriptions.push(statusBar)
+
+  const agentStatusBar = createAgentStatusBar()
+  context.subscriptions.push(agentStatusBar)
 
   // ── Sidebar / Dashboard ─────────────────────────────────────────────────────
   const dashboardProvider = new AahpDashboardProvider(context.extensionUri)
@@ -136,10 +140,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   await monitor.clearStaleSessions()
   await monitor.clearQueue()  // also clear any tasks stuck in queue from previous stale sessions
 
+  // ── Agent Log Store ────────────────────────────────────────────────────────
+  const logStore = new AgentLogStore(context.globalState, context.globalStorageUri)
+
+  // Feed initial log history to dashboard
+  dashboardProvider.updateLogHistory(logStore.getHistory(5))
+
   // ── Commands ────────────────────────────────────────────────────────────────
   for (const d of registerCommands(context, getCtx, refreshAll, (runs: AgentRun[]) => {
     dashboardProvider.updateAgentRuns(runs)
-  }, monitor, dashboardProvider)) {
+    updateAgentStatusBar(agentStatusBar, runs)
+    // Refresh log history when runs change (captures newly finished agents)
+    dashboardProvider.updateLogHistory(logStore.getHistory(5))
+  }, monitor, dashboardProvider, taskTreeProvider, logStore)) {
     context.subscriptions.push(d)
   }
 

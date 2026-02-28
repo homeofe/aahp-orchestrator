@@ -2,6 +2,7 @@ import * as vscode from 'vscode'
 import { AahpContext, AahpTask, NextActionItem, RepoOverview, getTopTask } from './aahp-reader'
 import { AgentRun, sessionTokens } from './agent-spawner'
 import { ActiveSession, QueuedTask } from './session-monitor'
+import { AgentLogEntry } from './agent-log'
 
 export class AahpDashboardProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView
@@ -13,6 +14,7 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
   private _collapsedSections: Set<string> = new Set()
   private _activeSessions: ActiveSession[] = []
   private _queuedTasks: QueuedTask[] = []
+  private _logHistory: AgentLogEntry[] = []
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -44,6 +46,11 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
   public updateSessionState(sessions: ActiveSession[], queue: QueuedTask[]): void {
     this._activeSessions = sessions
     this._queuedTasks = queue
+    this._render()
+  }
+
+  public updateLogHistory(entries: AgentLogEntry[]): void {
+    this._logHistory = entries
     this._render()
   }
 
@@ -85,6 +92,9 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
         case 'retryAgent':
           vscode.commands.executeCommand('aahp.retryAgent', msg.repoPath, msg.taskId)
           break
+        case 'cancelAgent':
+          vscode.commands.executeCommand('aahp.cancelAgent', Number(msg.runIndex))
+          break
         case 'toggleSection':
           if (this._collapsedSections.has(msg.section)) {
             this._collapsedSections.delete(msg.section)
@@ -104,6 +114,12 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
           break
         case 'refreshNextActions':
           vscode.commands.executeCommand('aahp.refreshAll')
+          break
+        case 'openAgentHistory':
+          vscode.commands.executeCommand('aahp.openAgentHistory')
+          break
+        case 'openLogEntry':
+          vscode.commands.executeCommand('aahp.openLogEntry', msg.logId)
           break
         case 'openUrl':
           if (msg.url && typeof msg.url === 'string' && msg.url.startsWith('https://')) {
@@ -128,6 +144,7 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
   ${this._renderAgentControl()}
+  ${this._renderHistory()}
   ${this._renderRepoGrid()}
   ${this._renderNextSteps()}
   ${this._renderFocusedProject()}
@@ -466,7 +483,8 @@ h2 { font-size: 14px; margin: 0 0 4px; }
       </div>`
 
       if (!this._collapsedSections.has('agents')) {
-        for (const r of runs) {
+        for (let idx = 0; idx < runs.length; idx++) {
+          const r = runs[idx]!
           const statusIcon: Record<string, string> = { queued: '...', running: '>>>', done: 'OK', failed: 'ERR' }
           const icon = statusIcon[r.status] ?? '?'
           const elapsed = r.startedAt
@@ -483,12 +501,15 @@ h2 { font-size: 14px; margin: 0 0 4px; }
           const retryBtn = r.status === 'failed'
             ? ` <button class="btn btn-secondary" style="font-size:10px;padding:1px 6px;margin-left:6px" data-cmd="retryAgent" data-repo-path="${escHtml(r.repo.repoPath)}" data-task-id="${escHtml(r.repo.taskId)}">Retry</button>`
             : ''
+          const cancelBtn = r.status === 'running'
+            ? ` <button class="btn btn-secondary" style="font-size:10px;padding:1px 6px;margin-left:6px;color:#f14c4c" data-cmd="cancelAgent" data-run-index="${idx}">Cancel</button>`
+            : ''
 
           html += `<div class="agent-card st-${r.status}">
             <div class="agent-header">
               <span class="mono" style="font-size:10px;opacity:.6">[${icon}]</span>
               <strong>${escHtml(r.repo.repoName)}</strong>
-              ${backendLabel}${retryBtn}
+              ${backendLabel}${cancelBtn}${retryBtn}
             </div>
             <div class="agent-detail">${escHtml(r.repo.taskId)} - ${elapsed}${tokStr}${retryLabel}</div>
           </div>`
@@ -530,6 +551,43 @@ h2 { font-size: 14px; margin: 0 0 4px; }
       </div>
       <div class="dim">${claudePct}% Claude | ${copilotPct}% Copilot | ${totalAll.toLocaleString()} total</div>
     `
+  }
+
+  // ── Section: History ───────────────────────────────────────────────────────────
+
+  private _renderHistory(): string {
+    if (this._logHistory.length === 0) return ''
+
+    const isCollapsed = this._collapsedSections.has('history')
+    let html = `<div class="section-header${isCollapsed ? ' collapsed' : ''}" data-cmd="toggleSection" data-section="history">
+      <span>History (${this._logHistory.length})</span>
+      <span style="display:flex;align-items:center;gap:4px">
+        <button class="btn btn-secondary" style="font-size:9px;padding:1px 6px;text-transform:none;letter-spacing:0" data-cmd="openAgentHistory">All</button>
+        <span class="chevron">&#9660;</span>
+      </span>
+    </div>`
+
+    if (isCollapsed) return html
+
+    for (const entry of this._logHistory.slice(0, 5)) {
+      const statusClass = entry.committed ? 'st-done' : 'st-failed'
+      const statusIcon = entry.committed ? 'OK' : 'ERR'
+      const backendLabel = entry.backend === 'claude'
+        ? `<span style="color:#f97316">claude</span>`
+        : `<span style="color:#22c55e">copilot</span>`
+      const tokStr = entry.tokens.total > 0 ? ` | ${entry.tokens.total.toLocaleString()}t` : ''
+
+      html += `<div class="agent-card ${statusClass}" data-cmd="openLogEntry" data-log-id="${escHtml(entry.id)}" style="cursor:pointer">
+        <div class="agent-header">
+          <span class="mono" style="font-size:10px;opacity:.6">[${statusIcon}]</span>
+          <strong>${escHtml(entry.repoName)}</strong>
+          ${backendLabel}
+        </div>
+        <div class="agent-detail">${escHtml(entry.taskId)} - ${entry.durationSec}s${tokStr} - ${escHtml(formatTimeAgo(entry.finishedAt))}</div>
+      </div>`
+    }
+
+    return html
   }
 
   // ── Section: Repo Grid ─────────────────────────────────────────────────────────
@@ -818,6 +876,8 @@ h2 { font-size: 14px; margin: 0 0 4px; }
         if (el.dataset.section) data.section = el.dataset.section
         if (el.dataset.taskId) data.taskId = el.dataset.taskId
         if (el.dataset.url) data.url = el.dataset.url
+        if (el.dataset.runIndex) data.runIndex = el.dataset.runIndex
+        if (el.dataset.logId) data.logId = el.dataset.logId
         if (cmd === 'openUrl') { e.stopPropagation(); }
         post(cmd, data)
       })

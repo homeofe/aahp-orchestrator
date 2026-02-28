@@ -1,8 +1,9 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
-import { spawn } from 'child_process'
+import { spawn, ChildProcess } from 'child_process'
 import { SessionMonitor, QueuedTask } from './session-monitor'
+import { AgentLogStore } from './agent-log'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,10 @@ export interface AgentRun {
   finishedAt?: Date
   retryCount: number
   maxRetries: number
+  /** Transient: Claude child process reference for cancellation (not serialized) */
+  proc?: ChildProcess
+  /** Transient: Copilot cancellation token source for cancellation (not serialized) */
+  cts?: vscode.CancellationTokenSource
 }
 
 /** Session-wide token accumulator - persists across multiple runAll calls */
@@ -267,6 +272,9 @@ async function runClaude(
       env: { ...process.env, CLAUDECODE: undefined },
     })
 
+    // Store proc reference so cancelAgent() can kill it
+    run.proc = proc
+
     proc.stdin.write(prompt)
     proc.stdin.end()
 
@@ -488,6 +496,8 @@ async function runCopilot(
 
   // B-4: Create a single CancellationTokenSource outside the loop to avoid leaks
   const cts = new vscode.CancellationTokenSource()
+  // Store cts reference so cancelAgent() can cancel it
+  run.cts = cts
 
   // FIX 7: Wall-clock timeout for the entire Copilot agent loop
   const copilotTimer = setTimeout(() => {
@@ -620,6 +630,24 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+// ── Agent cancellation ───────────────────────────────────────────────────
+
+/** Cancel a running agent. Sends SIGTERM to Claude CLI or cancels Copilot token. */
+export function cancelAgent(run: AgentRun): void {
+  if (run.status !== 'running') return
+
+  if (run.backend === 'claude' && run.proc) {
+    run.proc.kill('SIGTERM')
+    setTimeout(() => { try { run.proc?.kill('SIGKILL') } catch { /* already dead */ } }, 5000)
+  } else if (run.backend === 'copilot' && run.cts) {
+    run.cts.cancel()
+  }
+
+  run.status = 'failed'
+  run.finishedAt = new Date()
+  run.output += '\n[Cancelled by user]'
+}
+
 // ── Orchestrator ──────────────────────────────────────────────────────────────
 
 /** Spawn one agent per repo, all in parallel. Auto-selects Claude or Copilot per task.
@@ -630,7 +658,8 @@ export async function spawnAllAgents(
   repos: RepoTask[],
   onUpdate: (runs: AgentRun[]) => void,
   monitor?: SessionMonitor,
-  maxConcurrent = 0
+  maxConcurrent = 0,
+  logStore?: AgentLogStore
 ): Promise<AgentRun[]> {
   // B-7: Reset session token counters at the start of each orchestration run
   sessionTokens.claude = { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
@@ -763,6 +792,31 @@ export async function spawnAllAgents(
       }
     }
 
+    // Per-agent completion notification (1.1)
+    if (run.committed) {
+      vscode.window.showInformationMessage(
+        `AAHP: ${run.repo.repoName} [${run.repo.taskId}] committed via ${backendLabel}`,
+        'View Output'
+      ).then(choice => { if (choice === 'View Output') channel.show() })
+    } else if (run.status === 'failed') {
+      vscode.window.showWarningMessage(
+        `AAHP: ${run.repo.repoName} [${run.repo.taskId}] failed`,
+        'View Output', 'Retry'
+      ).then(choice => {
+        if (choice === 'View Output') channel.show()
+        else if (choice === 'Retry') vscode.commands.executeCommand('aahp.retryAgent', run.repo.repoPath, run.repo.taskId)
+      })
+    }
+
+    // Persist agent log
+    if (logStore) {
+      try { await logStore.writeLog(run) } catch { /* best-effort */ }
+    }
+
+    // Clean up transient references
+    delete run.proc
+    delete run.cts
+
     // Deregister session and drain queue for this repo
     await monitor?.deregisterSession(run.repo.repoPath)
     await monitor?.drainQueue(run.repo.repoPath, async (queued: QueuedTask) => {
@@ -776,7 +830,7 @@ export async function spawnAllAgents(
         phase: 'queued',
         quickContext: '',
       }
-      await spawnAllAgents([queuedRepo], onUpdate, monitor, maxConcurrent)
+      await spawnAllAgents([queuedRepo], onUpdate, monitor, maxConcurrent, logStore)
     })
 
     onUpdate([...runs])
@@ -791,8 +845,9 @@ export async function retryFailedAgent(
   repo: RepoTask,
   onUpdate: (runs: AgentRun[]) => void,
   monitor?: SessionMonitor,
+  logStore?: AgentLogStore,
 ): Promise<AgentRun[]> {
-  return spawnAllAgents([repo], onUpdate, monitor, 1)
+  return spawnAllAgents([repo], onUpdate, monitor, 1, logStore)
 }
 
 // ── Concurrency limiter ───────────────────────────────────────────────────────

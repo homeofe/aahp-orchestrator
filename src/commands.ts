@@ -9,11 +9,15 @@ import {
   getWorkspaceRoot,
   parseNextActions,
 } from './aahp-reader'
-import { scanAllRepos, spawnAllAgents, retryFailedAgent, getDevRoot, AgentRun } from './agent-spawner'
+import { scanAllRepos, spawnAllAgents, retryFailedAgent, getDevRoot, AgentRun, buildAgentPrompt, cancelAgent } from './agent-spawner'
 import { SessionMonitor } from './session-monitor'
 import { AahpDashboardProvider } from './sidebar'
-import { FlatTask } from './task-tree'
+import { FlatTask, TaskTreeProvider } from './task-tree'
+import { AgentLogStore, AgentLogEntry } from './agent-log'
 const PHASES = ['research', 'architecture', 'implementation', 'review', 'fix', 'release']
+
+/** Current agent runs reference for cancellation (updated by onAgentRuns callback) */
+let currentAgentRuns: AgentRun[] = []
 
 export function registerCommands(
   context: vscode.ExtensionContext,
@@ -21,8 +25,15 @@ export function registerCommands(
   reloadCtx: () => void,
   onAgentRuns?: (runs: AgentRun[]) => void,
   monitor?: SessionMonitor,
-  dashboardProvider?: AahpDashboardProvider
+  dashboardProvider?: AahpDashboardProvider,
+  taskTreeProvider?: TaskTreeProvider,
+  logStore?: AgentLogStore
 ): vscode.Disposable[] {
+  // Wrap onAgentRuns to capture current runs for cancellation
+  const wrappedOnAgentRuns = (runs: AgentRun[]) => {
+    currentAgentRuns = runs
+    onAgentRuns?.(runs)
+  }
   return [
 
     // ── Update Manifest Checksums ─────────────────────────────────────────────
@@ -138,9 +149,7 @@ export function registerCommands(
       const limitMsg = limit > 0 ? ` (${limit} at a time)` : ''
       vscode.window.showInformationMessage(`🤖 AAHP: Spawning ${repos.length} agents${limitMsg} — check Output channels per repo`)
 
-      spawnAllAgents(repos, runs => {
-        onAgentRuns?.(runs)
-      }, monitor, limit).then(finalRuns => {
+      spawnAllAgents(repos, wrappedOnAgentRuns, monitor, limit, logStore).then(finalRuns => {
         const done = finalRuns.filter(r => r.committed).length
         const failed = finalRuns.filter(r => r.status === 'failed').length
         vscode.window.showInformationMessage(
@@ -180,9 +189,7 @@ export function registerCommands(
 
       vscode.window.showInformationMessage(`AAHP: Spawning agent for ${repo.repoName}...`)
 
-      spawnAllAgents([repo], runs => {
-        onAgentRuns?.(runs)
-      }, monitor, 1).then(finalRuns => {
+      spawnAllAgents([repo], wrappedOnAgentRuns, monitor, 1, logStore).then(finalRuns => {
         const r = finalRuns[0]
         if (r) {
           vscode.window.showInformationMessage(
@@ -263,7 +270,7 @@ export function registerCommands(
             quickContext: manifest.quick_context ?? '',
           }
           vscode.window.showInformationMessage(`AAHP: Retrying [${taskId}] for ${fallbackRepo.repoName}...`)
-          retryFailedAgent(fallbackRepo, runs => { onAgentRuns?.(runs) }, monitor).then(finalRuns => {
+          retryFailedAgent(fallbackRepo, wrappedOnAgentRuns, monitor, logStore).then(finalRuns => {
             const r = finalRuns[0]
             if (r?.committed) {
               vscode.window.showInformationMessage(`AAHP: Retry succeeded - [${taskId}] committed.`)
@@ -280,7 +287,7 @@ export function registerCommands(
       }
 
       vscode.window.showInformationMessage(`AAHP: Retrying [${repo.taskId}] for ${repo.repoName}...`)
-      retryFailedAgent(repo, runs => { onAgentRuns?.(runs) }, monitor).then(finalRuns => {
+      retryFailedAgent(repo, wrappedOnAgentRuns, monitor, logStore).then(finalRuns => {
         const r = finalRuns[0]
         if (r?.committed) {
           vscode.window.showInformationMessage(`AAHP: Retry succeeded - [${repo.taskId}] committed.`)
@@ -324,20 +331,6 @@ export function registerCommands(
           }
         }
 
-        let confirmMsg = `AAHP: Run agent to fix [${taskId}] "${task.title}" in ${repoName}?`
-        const buttons: string[] = ['Run Agent']
-        if (unresolvedDeps.length > 0) {
-          confirmMsg = `AAHP: [${taskId}] has unresolved dependencies:\n\n${unresolvedDeps.join('\n')}\n\nRun anyway?`
-          buttons.push('Cancel')
-        }
-
-        const confirm = await vscode.window.showInformationMessage(
-          confirmMsg,
-          { modal: true },
-          ...buttons
-        )
-        if (confirm !== 'Run Agent') return
-
         const repo = {
           repoPath,
           repoName,
@@ -349,9 +342,29 @@ export function registerCommands(
           quickContext: manifest.quick_context ?? '',
         }
 
+        let confirmMsg = `AAHP: Run agent to fix [${taskId}] "${task.title}" in ${repoName}?`
+        const buttons: string[] = ['Run Agent', 'Preview Prompt']
+        if (unresolvedDeps.length > 0) {
+          confirmMsg = `AAHP: [${taskId}] has unresolved dependencies:\n\n${unresolvedDeps.join('\n')}\n\nRun anyway?`
+          buttons.push('Cancel')
+        }
+
+        const confirm = await vscode.window.showInformationMessage(
+          confirmMsg,
+          { modal: true },
+          ...buttons
+        )
+        if (confirm === 'Preview Prompt') {
+          const prompt = buildAgentPrompt(repo)
+          const doc = await vscode.workspace.openTextDocument({ content: prompt, language: 'markdown' })
+          await vscode.window.showTextDocument(doc, { preview: true })
+          return
+        }
+        if (confirm !== 'Run Agent') return
+
         vscode.window.showInformationMessage(`AAHP: Spawning agent for ${repoName} [${taskId}]...`)
 
-        spawnAllAgents([repo], runs => { onAgentRuns?.(runs) }, monitor, 1).then(finalRuns => {
+        spawnAllAgents([repo], wrappedOnAgentRuns, monitor, 1, logStore).then(finalRuns => {
           const r = finalRuns[0]
           if (r?.committed) {
             vscode.window.showInformationMessage(`AAHP: ${repoName} [${taskId}] committed.`)
@@ -397,15 +410,32 @@ export function registerCommands(
             `Task [${taskId}] has unresolved dependencies:\n\n${unresolvedDeps.join('\n')}\n\nThese should be completed first.`,
             { modal: true },
             'Run Anyway',
+            'Preview Prompt',
             'Cancel'
           )
+          if (choice === 'Preview Prompt') {
+            // Build repo object early for preview
+            const previewRepo = { repoPath, repoName, manifestPath, taskId, taskTitle: task.title, taskPriority: task.priority ?? 'medium', phase: manifest.last_session?.phase ?? 'unknown', quickContext: manifest.quick_context ?? '' }
+            const prompt = buildAgentPrompt(previewRepo)
+            const doc = await vscode.workspace.openTextDocument({ content: prompt, language: 'markdown' })
+            await vscode.window.showTextDocument(doc, { preview: true })
+            return
+          }
           if (choice !== 'Run Anyway') return
         } else {
           const confirm = await vscode.window.showInformationMessage(
             `Launch agent for [${taskId}] "${task.title}" in ${repoName}?`,
             { modal: true },
-            'Run Agent'
+            'Run Agent',
+            'Preview Prompt'
           )
+          if (confirm === 'Preview Prompt') {
+            const previewRepo = { repoPath, repoName, manifestPath, taskId, taskTitle: task.title, taskPriority: task.priority ?? 'medium', phase: manifest.last_session?.phase ?? 'unknown', quickContext: manifest.quick_context ?? '' }
+            const prompt = buildAgentPrompt(previewRepo)
+            const doc = await vscode.workspace.openTextDocument({ content: prompt, language: 'markdown' })
+            await vscode.window.showTextDocument(doc, { preview: true })
+            return
+          }
           if (confirm !== 'Run Agent') return
         }
 
@@ -439,7 +469,7 @@ export function registerCommands(
 
         vscode.window.showInformationMessage(`AAHP: Spawning agent for ${repoName} [${taskId}]...`)
 
-        spawnAllAgents([repo], runs => { onAgentRuns?.(runs) }, monitor, 1).then(finalRuns => {
+        spawnAllAgents([repo], wrappedOnAgentRuns, monitor, 1, logStore).then(finalRuns => {
           const r = finalRuns[0]
           if (r?.committed) {
             vscode.window.showInformationMessage(`AAHP: ${repoName} [${taskId}] committed.`)
@@ -627,6 +657,72 @@ export function registerCommands(
         vscode.window.showInformationMessage(`AAHP: Created ${taskId} - ${title.trim()}`)
       } catch (err) {
         vscode.window.showWarningMessage(`AAHP: Failed to create task - ${String(err)}`)
+      }
+    }),
+
+    // ── Cancel Agent (from dashboard or command palette) ─────────────────────
+    vscode.commands.registerCommand('aahp.cancelAgent', (runIndex: number) => {
+      const run = currentAgentRuns[runIndex]
+      if (!run) return
+      cancelAgent(run)
+      wrappedOnAgentRuns([...currentAgentRuns])
+      vscode.window.showInformationMessage(`AAHP: Cancelled agent for ${run.repo.repoName} [${run.repo.taskId}]`)
+    }),
+
+    // ── Filter Tasks in Tree View ───────────────────────────────────────────
+    vscode.commands.registerCommand('aahp.filterTasks', async () => {
+      const text = await vscode.window.showInputBox({
+        title: 'AAHP: Filter Tasks',
+        prompt: 'Filter by task ID, title, or repo name',
+        placeHolder: 'e.g. T-003 or openclaw',
+      })
+      if (text === undefined) return
+      taskTreeProvider?.setFilter(text)
+    }),
+
+    // ── Clear Task Filter ───────────────────────────────────────────────────
+    vscode.commands.registerCommand('aahp.clearFilter', () => {
+      taskTreeProvider?.setFilter('')
+    }),
+
+    // ── Open Log Entry by ID (from dashboard history click) ─────────────────
+    vscode.commands.registerCommand('aahp.openLogEntry', async (logId: string) => {
+      if (!logStore || !logId) return
+      const entry = logStore.getHistory().find((e: AgentLogEntry) => e.id === logId)
+      if (entry) {
+        await logStore.openLog(entry)
+      }
+    }),
+
+    // ── Open Agent History (QuickPick of past runs) ─────────────────────────
+    vscode.commands.registerCommand('aahp.openAgentHistory', async () => {
+      if (!logStore) {
+        vscode.window.showWarningMessage('AAHP: Agent log store not available.')
+        return
+      }
+
+      const history = logStore.getHistory(25)
+      if (history.length === 0) {
+        vscode.window.showInformationMessage('AAHP: No agent history yet.')
+        return
+      }
+
+      const items = history.map((entry: AgentLogEntry) => ({
+        label: `${entry.committed ? '$(check)' : '$(error)'} ${entry.repoName} [${entry.taskId}]`,
+        description: `${entry.backend} - ${entry.durationSec}s - ${entry.tokens.total.toLocaleString()}t`,
+        detail: `${entry.taskTitle} | ${new Date(entry.finishedAt).toLocaleString()}`,
+        entry,
+      }))
+
+      const picked = await vscode.window.showQuickPick(items, {
+        title: 'AAHP: Agent Run History',
+        placeHolder: 'Select a run to view its log',
+        matchOnDescription: true,
+        matchOnDetail: true,
+      })
+
+      if (picked) {
+        await logStore.openLog(picked.entry)
       }
     }),
   ]

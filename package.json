@@ -178,14 +178,47 @@
         "command": "aahp.setTaskPriorityFromTree",
         "title": "Set Priority...",
         "icon": "$(arrow-up)"
+      },
+      {
+        "command": "aahp.cancelAgent",
+        "title": "AAHP: Cancel Running Agent"
+      },
+      {
+        "command": "aahp.filterTasks",
+        "title": "AAHP: Filter Tasks",
+        "icon": "$(search)"
+      },
+      {
+        "command": "aahp.clearFilter",
+        "title": "AAHP: Clear Task Filter",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "aahp.openAgentHistory",
+        "title": "AAHP: Agent Run History",
+        "icon": "$(history)"
+      },
+      {
+        "command": "aahp.openLogEntry",
+        "title": "AAHP: Open Log Entry"
       }
     ],
     "menus": {
       "view/title": [
         {
+          "command": "aahp.filterTasks",
+          "when": "view == aahp.allTasks",
+          "group": "navigation@1"
+        },
+        {
+          "command": "aahp.clearFilter",
+          "when": "view == aahp.allTasks",
+          "group": "navigation@2"
+        },
+        {
           "command": "aahp.refreshAll",
           "when": "view == aahp.allTasks",
-          "group": "navigation"
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [

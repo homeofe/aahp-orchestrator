@@ -6,6 +6,7 @@ import {
   AahpContext,
   getTopTask,
 } from './aahp-reader'
+import { AgentRun } from './agent-spawner'
 
 export function createStatusBar(): vscode.StatusBarItem {
   const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10)
@@ -36,5 +37,39 @@ export function updateStatusBar(item: vscode.StatusBarItem, ctx: AahpContext | u
     `_Click to open dashboard_`
   )
   item.backgroundColor = undefined
+  item.show()
+}
+
+// ── Agent status bar (running indicator) ──────────────────────────────────
+
+export function createAgentStatusBar(): vscode.StatusBarItem {
+  const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 9)
+  item.command = 'aahp.openDashboard'
+  item.hide()
+  return item
+}
+
+export function updateAgentStatusBar(item: vscode.StatusBarItem, runs: AgentRun[]): void {
+  const running = runs.filter(r => r.status === 'running').length
+  const total = runs.length
+  const done = runs.filter(r => r.status === 'done').length
+
+  if (running === 0 && total === 0) {
+    item.hide()
+    return
+  }
+
+  if (running > 0) {
+    item.text = `$(sync~spin) ${running}/${total} agents`
+    item.tooltip = `AAHP: ${running} running, ${done} done, ${total} total`
+    item.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground')
+  } else {
+    const failed = runs.filter(r => r.status === 'failed').length
+    item.text = `$(check) ${done}/${total} agents done`
+    item.tooltip = `AAHP: ${done} committed, ${failed} failed`
+    item.backgroundColor = undefined
+    // Auto-hide after 10s when all done
+    setTimeout(() => item.hide(), 10000)
+  }
   item.show()
 }
