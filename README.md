@@ -155,7 +155,7 @@ When you launch a task that has unresolved dependencies (`depends_on` in MANIFES
 | `aahp.developmentRoot` | boolean | `false` | Enable multi-repo mode: scans all subdirectories for `.ai/handoff/MANIFEST.json` |
 | `aahp.rootFolderPath` | string | `""` | Override the root path to scan for repos (default: workspace root) |
 | `aahp.suppressRootPrompt` | boolean | `false` | Suppress the initial prompt asking about development root mode |
-| `aahp.agentBackend` | enum | `"auto"` | Agent backend: `auto` (try claude then copilot), `claude`, or `copilot` |
+| `aahp.agentBackend` | enum | `"auto"` | Agent backend: `auto` (priority-based: high-priority tasks route to Claude Code, medium/low to Copilot), `claude`, or `copilot` |
 | `aahp.agentConcurrencyLimit` | number | `0` | Max parallel agents when running all repos (0 = unlimited) |
 | `aahp.agentMaxRetries` | number | `1` | Max retry attempts on agent failure (uses exponential backoff) |
 
