@@ -27,10 +27,19 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
     this._batchMode = true
   }
 
-  /** End batch mode and trigger one debounced render with all accumulated state. */
+  /** End batch mode and trigger one DIRECT (non-debounced) render with all
+   *  accumulated state. Using a direct render (instead of the 50ms debounce)
+   *  eliminates the gap where the webview would show stale/blank content. */
   public endBatchUpdate(): void {
     this._batchMode = false
-    this._render()
+    // Direct render - bypass debounce to avoid a 50ms blank gap
+    if (this._view) {
+      if (this._renderTimer) {
+        clearTimeout(this._renderTimer)
+        delete this._renderTimer
+      }
+      this._view.webview.html = this._getHtml(this._view.webview)
+    }
   }
 
   /** Register a callback that fires when the dashboard needs fresh data.
@@ -106,13 +115,8 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
       }
     })
 
-    // Request a full data refresh BEFORE rendering. During activate(), the webview
-    // is not yet resolved so all _render() calls are no-ops. By requesting a refresh
-    // here, we ensure the extension re-scans all repos and pushes fresh data into
-    // the provider BEFORE the first render.
-    //
-    // Temporarily disable batch mode so the refresh can populate state even if
-    // activate() is still running with batch mode on.
+    // Request a full data refresh BEFORE rendering so the provider has current
+    // state from all repos and MANIFEST.json files.
     const wasBatch = this._batchMode
     this._batchMode = true  // suppress debounced renders from the refresh
     try {
@@ -124,15 +128,22 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
     }
     this._batchMode = wasBatch
 
-    // Cancel any debounced renders that somehow slipped through - we are about
-    // to do a synchronous render which is always more up-to-date.
+    // Cancel any debounced renders that slipped through.
     if (this._renderTimer) {
       clearTimeout(this._renderTimer)
       delete this._renderTimer
     }
 
-    // Synchronous render with the freshly loaded data (no debounce, no flicker)
-    webviewView.webview.html = this._getHtml(webviewView.webview)
+    // During batch mode (i.e. activate() is still running), skip the sync render.
+    // endBatchUpdate() will do ONE direct render with the complete state, avoiding
+    // the double-render problem (sync here + debounced from endBatchUpdate) that
+    // caused visible blank flashes on Windows as each HTML set generates a new
+    // CSP nonce and forces a full webview reload.
+    //
+    // Outside batch mode (user opens sidebar after startup), render immediately.
+    if (!wasBatch) {
+      webviewView.webview.html = this._getHtml(webviewView.webview)
+    }
 
     // Re-render with fresh state whenever the sidebar becomes visible again
     webviewView.onDidChangeVisibility(() => {

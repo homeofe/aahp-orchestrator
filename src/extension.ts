@@ -183,10 +183,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   refreshAll()
   dashboardProvider.endBatchUpdate()
 
-  // ── Auto-open dashboard on startup if AAHP context found ───────────────────
+  // ── Auto-open dashboard on startup if AAHP context or dev root repos found ──
   // Show the dashboard automatically so users can see tasks and status at a glance.
   // This must happen after endBatchUpdate() to ensure data is ready for rendering.
-  if (currentCtx) {
+  // In dev-root workspaces, currentCtx may be undefined (no active editor yet)
+  // but getDevRoot() still points to a valid directory with AAHP repos.
+  const hasAahpContent = currentCtx || getDevRoot()
+  if (hasAahpContent) {
     // Delay slightly to allow VS Code to fully initialize before opening the view
     setTimeout(() => {
       vscode.commands.executeCommand('aahp.dashboard.focus').then(
