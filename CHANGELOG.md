@@ -9,7 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned
 
-- GitHub release workflow, tag-triggered (T-008)
 - Unit tests for chat-participant and context-injector (T-009)
 - Integration tests with VS Code extension host (T-010)
 - Dashboard task filtering and sorting (T-011)
@@ -18,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- GitHub release workflow - tag-triggered CI/CD that builds .vsix, creates GitHub
+  Release with asset, extracts CHANGELOG notes, and optionally publishes to
+  VS Code Marketplace when VSCE_PAT secret is set (T-008)
 - VS Code Marketplace publishing support with extension icon, gallery metadata,
   and `npm run publish` script (T-003)
 - Aggregated all-repos open task view in sidebar (T-005)

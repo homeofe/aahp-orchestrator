@@ -10,40 +10,13 @@
 
 | Status | Count | Tasks |
 |--------|-------|-------|
-| Done | 8 | T-001, T-002, T-003, T-004, T-005, T-006, T-007 |
-| Ready | 4 | T-008, T-009, T-010, T-011 |
+| Done | 9 | T-001, T-002, T-003, T-004, T-005, T-006, T-007, T-008 |
+| Ready | 3 | T-009, T-010, T-011 |
 | Blocked | 0 | - |
 
 ---
 
 ## Ready - Work These Next
-
-### T-008: GitHub release workflow (tag-triggered) *(medium priority)*
-
-**Goal:** Automate GitHub releases on version tags.
-
-**Context:**
-- T-004 (CHANGELOG.md) is done - this task is unblocked
-- T-003 (Marketplace readiness) is done - publish script exists
-- Publish .vsix as a GitHub Release asset when `git tag v*` is pushed
-
-**What to do:**
-1. Create `.github/workflows/release.yml`
-2. Trigger on `push` tags matching `v*`
-3. Steps: checkout, `npm ci`, compile, lint, test, `vsce package`
-4. Create GitHub Release with .vsix as asset
-5. Extract release notes from CHANGELOG.md for the tagged version
-6. Optionally add `vsce publish` step gated behind `VSCE_PAT` secret
-
-**Files:**
-- `.github/workflows/release.yml`: create
-
-**Definition of done:**
-- [ ] Workflow triggers on `git tag v*`
-- [ ] Builds and attaches .vsix to GitHub Release
-- [ ] CHANGELOG excerpt included in release notes
-
----
 
 ### T-009: Test chat-participant and context-injector *(medium priority)*
 
@@ -141,11 +114,11 @@
 
 | Task | What Was Done | When |
 |------|--------------|------|
+| T-008: GitHub release workflow | Tag-triggered release.yml: compile, lint, test, vsce package, create GitHub Release with .vsix asset, extract CHANGELOG notes, optional Marketplace publish via VSCE_PAT | 2026-02-28 |
 | T-003: Publish to VS Code Marketplace | Extension icon, gallery metadata, publish script, .vscodeignore cleanup, CHANGELOG v0.3.0. Ready to publish with VSCE_PAT. | 2026-02-28 |
 | T-007: Agent retry on failure | Retry loop with exponential backoff (30s * 2^n), configurable max retries, dashboard retry button, 12 new tests (129 total) | 2026-02-28 |
 | T-006: Task creation from dashboard | "New Task" button + aahp.createTask command, prompts for title/priority/deps, writes to MANIFEST.json | 2026-02-27 |
 | T-005: All-repos open task view | Added "All Open Tasks" tree view to sidebar, 103 tests passing | 2026-02-27 |
-| T-004: CHANGELOG.md | Created CHANGELOG.md with v0.1.0 and v0.2.0 entries, vsce package passes | 2026-02-27 |
 
 ---
 
@@ -172,6 +145,7 @@
 | Icon generator | `scripts/generate-icon.js` |
 | Packaged .vsix | `aahp-orchestrator-0.3.0.vsix` |
 | CI workflow | `.github/workflows/ci.yml` |
+| Release workflow | `.github/workflows/release.yml` |
 | ESLint config | `.eslintrc.json` |
 
 ---

@@ -3,11 +3,11 @@
   "project": "aahp-orchestrator",
   "last_session": {
     "agent": "claude-code",
-    "session_id": "t003-marketplace-publish-2026-02-28",
-    "timestamp": "2026-02-27T23:49:21.664Z",
-    "commit": "ecb15e0",
+    "session_id": "t008-release-workflow-2026-02-28",
+    "timestamp": "2026-02-28T13:50:00.000Z",
+    "commit": "pending",
     "phase": "implementation",
-    "duration_minutes": 2
+    "duration_minutes": 5
   },
   "files": {
     "STATUS.md": {
@@ -20,7 +20,7 @@
       "checksum": "sha256:(pending)",
       "updated": "2026-02-28T00:48:00.000Z",
       "lines": 150,
-      "summary": "4 open tasks: release workflow (T-008), test coverage (T-009/T-010), filtering (T-011). 8 done."
+      "summary": "3 open tasks: test coverage (T-009/T-010), filtering (T-011). 9 done."
     },
     "LOG.md": {
       "checksum": "sha256:(pending)",
@@ -53,7 +53,7 @@
       "summary": "5-phase AAHP pipeline. VS Code extension specific: webview CSP, try/catch, vsce package notes."
     }
   },
-  "quick_context": "aahp-orchestrator v0.3.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Marketplace-ready with icon, metadata, and publish script. 129 unit tests, CI pipeline. To publish: set VSCE_PAT and run npm run publish. 4 open tasks: release workflow (T-008), test coverage (T-009/T-010), filtering (T-011).",
+  "quick_context": "aahp-orchestrator v0.3.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Marketplace-ready with icon, metadata, and publish script. 145 unit tests, CI pipeline, tag-triggered release workflow. To publish: set VSCE_PAT and run npm run publish or push a v* tag. 3 open tasks: test coverage (T-009/T-010), filtering (T-011).",
   "token_budget": {
     "manifest_only": 80,
     "manifest_plus_core": 1200,
@@ -126,13 +126,14 @@
     },
     "T-008": {
       "title": "GitHub release workflow (tag-triggered)",
-      "status": "ready",
+      "status": "done",
       "priority": "medium",
       "depends_on": [
         "T-004"
       ],
       "created": "2026-02-27T22:00:00.000Z",
-      "notes": "Add .github/workflows/release.yml triggered on 'git tag v*'. Build .vsix, create GitHub release with asset, optionally publish to Marketplace."
+      "notes": "Add .github/workflows/release.yml triggered on 'git tag v*'. Build .vsix, create GitHub release with asset, optionally publish to Marketplace.",
+      "completed": "2026-02-28T13:50:00.000Z"
     },
     "T-009": {
       "title": "Test chat-participant and context-injector",
