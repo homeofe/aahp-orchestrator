@@ -75,19 +75,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // ── Sidebar / Dashboard ─────────────────────────────────────────────────────
   const dashboardProvider = new AahpDashboardProvider(context.extensionUri)
-  dashboardProvider.update(currentCtx)
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider('aahp.dashboard', dashboardProvider, {
-      webviewOptions: { retainContextWhenHidden: true },
-    })
-  )
 
   // ── All Open Tasks tree view ──────────────────────────────────────────────
   const taskTreeProvider = new TaskTreeProvider()
-  context.subscriptions.push(
-    vscode.window.createTreeView('aahp.allTasks', { treeDataProvider: taskTreeProvider })
-  )
 
+  // ── Define refreshAll BEFORE registering providers ────────────────────────
+  // IMPORTANT: registerWebviewViewProvider may immediately call resolveWebviewView
+  // if the sidebar was visible when VS Code was last closed. The refresh callback
+  // MUST be set before that happens, otherwise the dashboard renders empty on startup.
   const refreshAll = (): void => {
     reloadContext()
     updateStatusBar(statusBar, currentCtx)
@@ -108,10 +103,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }
   }
 
-  // ── Connect dashboard refresh callback ──────────────────────────────────────
-  // When the sidebar webview is first shown (or re-shown), it fires requestRefresh
-  // to get fresh data. This is the key fix for "dashboard is empty after restart".
+  // Set the refresh callback BEFORE registering the webview provider to prevent
+  // the race condition where resolveWebviewView fires before the callback exists
   dashboardProvider.setRefreshCallback(refreshAll)
+  dashboardProvider.update(currentCtx)
+
+  // NOW register providers - VS Code may immediately call resolveWebviewView here,
+  // but the refresh callback is already set so the dashboard will populate correctly
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider('aahp.dashboard', dashboardProvider, {
+      webviewOptions: { retainContextWhenHidden: true },
+    })
+  )
+  context.subscriptions.push(
+    vscode.window.createTreeView('aahp.allTasks', { treeDataProvider: taskTreeProvider })
+  )
 
   // ── One-time development-root prompt ─────────────────────────────────────────
   if (!currentCtx) {
