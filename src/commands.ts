@@ -289,6 +289,62 @@ export function registerCommands(
       })
     }),
 
+    // ── Fix Task (spawn agent for a specific task) ───────────────────────────
+    vscode.commands.registerCommand('aahp.fixTask', async (repoPath: string, taskId: string) => {
+      if (!repoPath || !taskId) {
+        vscode.window.showWarningMessage('AAHP: No repo/task specified.')
+        return
+      }
+
+      const manifestPath = path.join(repoPath, '.ai', 'handoff', 'MANIFEST.json')
+      if (!fs.existsSync(manifestPath)) {
+        vscode.window.showWarningMessage('AAHP: No manifest found for this repo.')
+        return
+      }
+
+      try {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+        const task = manifest.tasks?.[taskId]
+        if (!task) {
+          vscode.window.showWarningMessage(`AAHP: Task ${taskId} not found in manifest.`)
+          return
+        }
+
+        const repoName = path.basename(repoPath)
+        const confirm = await vscode.window.showInformationMessage(
+          `AAHP: Run agent to fix [${taskId}] ${task.title} in ${repoName}?`,
+          { modal: true },
+          'Run Agent'
+        )
+        if (confirm !== 'Run Agent') return
+
+        const repo = {
+          repoPath,
+          repoName,
+          manifestPath,
+          taskId,
+          taskTitle: task.title,
+          taskPriority: task.priority ?? 'medium',
+          phase: manifest.last_session?.phase ?? 'unknown',
+          quickContext: manifest.quick_context ?? '',
+        }
+
+        vscode.window.showInformationMessage(`AAHP: Spawning agent for ${repoName} [${taskId}]...`)
+
+        spawnAllAgents([repo], runs => { onAgentRuns?.(runs) }, monitor, 1).then(finalRuns => {
+          const r = finalRuns[0]
+          if (r?.committed) {
+            vscode.window.showInformationMessage(`AAHP: ${repoName} [${taskId}] committed.`)
+          } else {
+            vscode.window.showInformationMessage(`AAHP: ${repoName} [${taskId}] agent finished - review output.`)
+          }
+          reloadCtx()
+        })
+      } catch (err) {
+        vscode.window.showWarningMessage(`AAHP: Failed to read manifest - ${String(err)}`)
+      }
+    }),
+
     // ── Refresh All (re-scan repos and NEXT_ACTIONS.md) ───────────────────────
     vscode.commands.registerCommand('aahp.refreshAll', () => {
       reloadCtx()

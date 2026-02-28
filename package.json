@@ -126,6 +126,10 @@
         "title": "AAHP: Retry Failed Agent"
       },
       {
+        "command": "aahp.fixTask",
+        "title": "AAHP: Fix Task"
+      },
+      {
         "command": "aahp.refreshAll",
         "title": "AAHP: Refresh Dashboard"
       }

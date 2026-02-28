@@ -92,6 +92,9 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
         case 'createTask':
           vscode.commands.executeCommand('aahp.createTask', msg.repoPath)
           break
+        case 'fixTask':
+          vscode.commands.executeCommand('aahp.fixTask', msg.repoPath, msg.taskId)
+          break
         case 'refreshNextActions':
           vscode.commands.executeCommand('aahp.refreshAll')
           break
@@ -385,6 +388,31 @@ h2 { font-size: 14px; margin: 0 0 4px; }
   padding-left: 10px;
   cursor: pointer;
 }
+
+/* Fix task button */
+.fix-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 9px;
+  padding: 0;
+  margin-left: auto;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  opacity: 0.4;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s;
+}
+.fix-btn:hover {
+  opacity: 1;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
 `
   }
 
@@ -589,9 +617,12 @@ h2 { font-size: 14px; margin: 0 0 4px; }
         const idLabel = item.taskId ? `<span class="task-id">[${escHtml(item.taskId)}]</span> ` : ''
         const priClass = item.priority === 'high' ? 'pri-high' : item.priority === 'low' ? 'pri-low' : ''
         const priLabel = item.priority ? `<span class="${priClass}" style="font-size:10px">${escHtml(item.priority)}</span>` : ''
+        const fixBtn = item.taskId
+          ? `<button class="fix-btn" data-cmd="fixTask" data-repo-path="${escHtml(repo.repoPath)}" data-task-id="${escHtml(item.taskId)}" title="Run agent to fix this task">&#9654;</button>`
+          : ''
 
         html += `<div class="ns-item ns-${item.section}">
-          ${idLabel}<span>${escHtml(item.title)}</span>${priLabel}
+          ${idLabel}<span>${escHtml(item.title)}</span>${priLabel}${fixBtn}
         </div>`
 
         if (item.detail) {
@@ -695,6 +726,10 @@ h2 { font-size: 14px; margin: 0 0 4px; }
       const icon = statusIcon[t.status] ?? '?'
       const priClass = t.priority === 'high' ? 'pri-high' : t.priority === 'medium' ? 'pri-medium' : 'pri-low'
 
+      const fixBtn = t.status !== 'done'
+        ? `<button class="fix-btn" data-cmd="fixTask" data-repo-path="${escHtml(repoPath)}" data-task-id="${escHtml(id)}" title="Run agent to fix this task">&#9654;</button>`
+        : ''
+
       html += `<tr>
         <td class="task-id">${escHtml(id)}</td>
         <td style="font-size:11px;opacity:.6;width:20px">${icon}</td>
@@ -707,6 +742,7 @@ h2 { font-size: 14px; margin: 0 0 4px; }
             ).join('')}
           </select>
         </td>
+        <td>${fixBtn}</td>
       </tr>`
     }
 
