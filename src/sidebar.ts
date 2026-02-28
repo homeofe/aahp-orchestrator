@@ -83,24 +83,70 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
     this._view = webviewView
     webviewView.webview.options = { enableScripts: true }
 
-    // Request a full data refresh BEFORE rendering - this is the key fix for the
-    // "dashboard is empty on VS Code startup" bug. During activate(), the webview
+    // Clear stale view reference when VS Code disposes the webview panel
+    webviewView.onDidDispose(() => {
+      delete this._view
+      if (this._renderTimer) {
+        clearTimeout(this._renderTimer)
+        delete this._renderTimer
+      }
+    })
+
+    // Request a full data refresh BEFORE rendering. During activate(), the webview
     // is not yet resolved so all _render() calls are no-ops. By requesting a refresh
     // here, we ensure the extension re-scans all repos and pushes fresh data into
     // the provider BEFORE the first render.
-    if (this._requestRefresh) {
-      this._requestRefresh()
+    try {
+      if (this._requestRefresh) {
+        this._requestRefresh()
+      }
+    } catch (e) {
+      console.error('AAHP: Error during initial dashboard refresh', e)
     }
 
-    // Now render with the freshly loaded data (synchronous render, no debounce)
+    // Cancel any debounced renders that refreshAll() triggered - they would
+    // re-set webview.html with a new CSP nonce, causing a visible blank flash.
+    // The synchronous render below already has the correct data.
+    if (this._renderTimer) {
+      clearTimeout(this._renderTimer)
+      delete this._renderTimer
+    }
+
+    // Synchronous render with the freshly loaded data (no debounce)
     webviewView.webview.html = this._getHtml(webviewView.webview)
+
+    // Safety-net: re-render after a short delay to pick up any data that arrives
+    // late during activate() (e.g. session monitor clearing, log store loading).
+    // This handles the case where resolveWebviewView fires before activate() has
+    // finished all its async initialization.
+    setTimeout(() => {
+      if (this._view && this._view === webviewView) {
+        try {
+          if (this._requestRefresh) {
+            this._requestRefresh()
+          }
+        } catch (e) {
+          console.error('AAHP: Error during delayed dashboard refresh', e)
+        }
+        // Cancel debounced renders from the refresh, render synchronously
+        if (this._renderTimer) {
+          clearTimeout(this._renderTimer)
+          delete this._renderTimer
+        }
+        this._view.webview.html = this._getHtml(this._view.webview)
+      }
+    }, 800)
 
     // Re-render with fresh state whenever the sidebar becomes visible again
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
         // Re-fetch data on every visibility change so the dashboard is never stale
-        if (this._requestRefresh) {
-          this._requestRefresh()
+        try {
+          if (this._requestRefresh) {
+            this._requestRefresh()
+          }
+        } catch (e) {
+          console.error('AAHP: Error during visibility-change refresh', e)
         }
         this._render()
       }

@@ -169,6 +169,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     context.subscriptions.push(d)
   }
 
+  // ── Final refresh after all async initialization is complete ────────────────
+  // This catches the case where resolveWebviewView fired during the awaits above
+  // but before session monitor / log store data was available. Now all state is
+  // populated, so this render will be complete.
+  refreshAll()
+
   // ── Re-trigger refreshAll on config change (user edits settings.json) ────────
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(e => {
