@@ -3,11 +3,11 @@
   "project": "aahp-orchestrator",
   "last_session": {
     "agent": "claude-code",
-    "session_id": "t011-dashboard-filtering-2026-02-28",
-    "timestamp": "2026-02-28T16:15:00.000Z",
-    "commit": "fe60954",
+    "session_id": "t012-integration-tests-2026-02-28",
+    "timestamp": "2026-02-28T18:20:00.000Z",
+    "commit": "a8ecc49",
     "phase": "implementation",
-    "duration_minutes": 15
+    "duration_minutes": 5
   },
   "files": {
     "STATUS.md": {
@@ -53,13 +53,13 @@
       "summary": "5-phase AAHP pipeline. VS Code extension specific: webview CSP, try/catch, vsce package notes."
     }
   },
-  "quick_context": "aahp-orchestrator v0.3.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Marketplace-ready with icon, metadata, and publish script. 234 unit tests (12 suites) + 10 integration tests (@vscode/test-electron), CI pipeline with xvfb integration tests, tag-triggered release workflow. Dashboard has aggregated task filtering (status/priority/repo) and sorting. To publish: set VSCE_PAT and run npm run publish or push a v* tag. All tasks done except T-003 (pending human VSCE_PAT).",
+  "quick_context": "aahp-orchestrator v0.3.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Marketplace-ready with icon, metadata, and publish script. 234 unit tests (12 suites) + 26 integration tests (@vscode/test-electron, 5 suites), CI pipeline with xvfb integration tests, tag-triggered release workflow. Dashboard has aggregated task filtering (status/priority/repo) and sorting. To publish: set VSCE_PAT and run npm run publish or push a v* tag.",
   "token_budget": {
     "manifest_only": 80,
     "manifest_plus_core": 1200,
     "full_read": 5000
   },
-  "next_task_id": 12,
+  "next_task_id": 14,
   "tasks": {
     "T-001": {
       "title": "Add GitHub Actions CI pipeline",
@@ -162,7 +162,28 @@
       ],
       "created": "2026-02-27T22:00:00.000Z",
       "notes": "Add filter controls to the aggregated task view: filter by status (ready/blocked/done), by priority (high/medium/low), by repo. Sort by priority then age.",
-      "completed": "2026-02-28T16:15:00.000Z"
+      "completed": "2026-02-28T15:15:31.247Z"
+    },
+    "T-012": {
+      "title": "T-010: Integration tests with VS Code extension host",
+      "status": "done",
+      "priority": "medium",
+      "depends_on": [],
+      "created": "2026-02-28T18:15:06.184Z",
+      "completed": "2026-02-28T18:20:00.000Z",
+      "notes": "Expanded integration tests from 10 to 26 across 5 suites. Added configuration, package metadata, command execution, and dashboard webview test suites.",
+      "github_issue": 4,
+      "github_repo": "homeofe/aahp-orchestrator"
+    },
+    "T-013": {
+      "title": "T-009: Test chat-participant and context-injector",
+      "status": "ready",
+      "priority": "medium",
+      "depends_on": [],
+      "created": "2026-02-28T18:15:06.184Z",
+      "notes": "Add unit tests for the two untested modules:\n\n- `chat-participant.ts` has 7 slash command handlers\n- `context-injector.ts` registers clipboard copy + one-time banner\n- At least 15 tests for chat-participant, 5 for context-injector\n\n**From AAHP NEXT_ACTIONS**",
+      "github_issue": 3,
+      "github_repo": "homeofe/aahp-orchestrator"
     }
   }
 }
