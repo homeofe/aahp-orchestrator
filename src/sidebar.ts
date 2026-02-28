@@ -620,9 +620,12 @@ h2 { font-size: 14px; margin: 0 0 4px; }
         const fixBtn = item.taskId
           ? `<button class="fix-btn" data-cmd="fixTask" data-repo-path="${escHtml(repo.repoPath)}" data-task-id="${escHtml(item.taskId)}" title="Run agent to fix this task">&#9654;</button>`
           : ''
+        const ghIssueBtn = (item.taskId && repo.githubUrl)
+          ? `<a class="gh-link" data-cmd="openUrl" data-url="${escHtml(repo.githubUrl)}/issues?q=${escHtml(item.taskId)}" title="Search GitHub Issues for ${escHtml(item.taskId)}">GH</a>`
+          : ''
 
         html += `<div class="ns-item ns-${item.section}">
-          ${idLabel}<span>${escHtml(item.title)}</span>${priLabel}${fixBtn}
+          ${idLabel}<span>${escHtml(item.title)}</span>${priLabel}${ghIssueBtn}${fixBtn}
         </div>`
 
         if (item.detail) {
@@ -716,6 +719,7 @@ h2 { font-size: 14px; margin: 0 0 4px; }
     }
 
     const repoPath = this._focusedRepoPath ?? ''
+    const repoGhUrl = this._repoOverviews.find(r => r.repoPath === this._focusedRepoPath)?.githubUrl
     const statusIcon: Record<string, string> = {
       done: 'v', in_progress: '>>', ready: '*', blocked: 'x', pending: '~',
     }
@@ -728,6 +732,9 @@ h2 { font-size: 14px; margin: 0 0 4px; }
 
       const fixBtn = t.status !== 'done'
         ? `<button class="fix-btn" data-cmd="fixTask" data-repo-path="${escHtml(repoPath)}" data-task-id="${escHtml(id)}" title="Run agent to fix this task">&#9654;</button>`
+        : ''
+      const ghIssueBtn = repoGhUrl
+        ? `<a class="gh-link" data-cmd="openUrl" data-url="${escHtml(repoGhUrl)}/issues?q=${escHtml(id)}" title="Search GitHub Issues for ${escHtml(id)}">GH</a>`
         : ''
 
       html += `<tr>
@@ -742,7 +749,7 @@ h2 { font-size: 14px; margin: 0 0 4px; }
             ).join('')}
           </select>
         </td>
-        <td>${fixBtn}</td>
+        <td>${ghIssueBtn}${fixBtn}</td>
       </tr>`
     }
 
