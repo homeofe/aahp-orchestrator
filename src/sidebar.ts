@@ -15,8 +15,17 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
   private _activeSessions: ActiveSession[] = []
   private _queuedTasks: QueuedTask[] = []
   private _logHistory: AgentLogEntry[] = []
+  private _requestRefresh?: () => void
+  private _renderTimer?: ReturnType<typeof setTimeout>
 
   constructor(private readonly extensionUri: vscode.Uri) {}
+
+  /** Register a callback that fires when the dashboard needs fresh data.
+   *  This is called when the webview is first resolved and whenever it becomes visible,
+   *  ensuring the dashboard always shows up-to-date state - even on VS Code startup. */
+  public setRefreshCallback(fn: () => void): void {
+    this._requestRefresh = fn
+  }
 
   public update(ctx: AahpContext | undefined): void {
     this._ctx = ctx
@@ -54,10 +63,16 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
     this._render()
   }
 
+  /** Debounced render - coalesces multiple rapid state changes into a single re-render.
+   *  Without this, refreshAll() triggers 3+ full HTML rebuilds in rapid succession. */
   private _render(): void {
-    if (this._view) {
-      this._view.webview.html = this._getHtml(this._view.webview)
-    }
+    if (!this._view) return
+    if (this._renderTimer) clearTimeout(this._renderTimer)
+    this._renderTimer = setTimeout(() => {
+      if (this._view) {
+        this._view.webview.html = this._getHtml(this._view.webview)
+      }
+    }, 50)
   }
 
   public resolveWebviewView(
@@ -67,11 +82,26 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
   ): void {
     this._view = webviewView
     webviewView.webview.options = { enableScripts: true }
+
+    // Request a full data refresh BEFORE rendering - this is the key fix for the
+    // "dashboard is empty on VS Code startup" bug. During activate(), the webview
+    // is not yet resolved so all _render() calls are no-ops. By requesting a refresh
+    // here, we ensure the extension re-scans all repos and pushes fresh data into
+    // the provider BEFORE the first render.
+    if (this._requestRefresh) {
+      this._requestRefresh()
+    }
+
+    // Now render with the freshly loaded data (synchronous render, no debounce)
     webviewView.webview.html = this._getHtml(webviewView.webview)
 
-    // Re-render with fresh state whenever the sidebar becomes visible
+    // Re-render with fresh state whenever the sidebar becomes visible again
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
+        // Re-fetch data on every visibility change so the dashboard is never stale
+        if (this._requestRefresh) {
+          this._requestRefresh()
+        }
         this._render()
       }
     })

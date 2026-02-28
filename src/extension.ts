@@ -77,7 +77,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const dashboardProvider = new AahpDashboardProvider(context.extensionUri)
   dashboardProvider.update(currentCtx)
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider('aahp.dashboard', dashboardProvider)
+    vscode.window.registerWebviewViewProvider('aahp.dashboard', dashboardProvider, {
+      webviewOptions: { retainContextWhenHidden: true },
+    })
   )
 
   // ── All Open Tasks tree view ──────────────────────────────────────────────
@@ -105,6 +107,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       dashboardProvider.updateFocusedRepo(repoRoot, currentCtx)
     }
   }
+
+  // ── Connect dashboard refresh callback ──────────────────────────────────────
+  // When the sidebar webview is first shown (or re-shown), it fires requestRefresh
+  // to get fresh data. This is the key fix for "dashboard is empty after restart".
+  dashboardProvider.setRefreshCallback(refreshAll)
 
   // ── One-time development-root prompt ─────────────────────────────────────────
   if (!currentCtx) {
@@ -182,6 +189,32 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // ── Workspace folder change ──────────────────────────────────────────────────
   context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(refreshAll))
+
+  // ── Extension conflict detection ─────────────────────────────────────────────
+  // Warn if conflicting AAHP extensions are installed (duplicate command IDs break
+  // context menus and command routing)
+  const conflicting = vscode.extensions.all.filter(ext => {
+    if (ext.id === 'elvatis.aahp-orchestrator') return false // that's us
+    return ext.id.includes('aahp') && ext.id !== 'elvatis.aahp-orchestrator'
+  })
+  if (conflicting.length > 0) {
+    const names = conflicting.map(e => e.id).join(', ')
+    vscode.window.showWarningMessage(
+      `AAHP Orchestrator: Conflicting extensions detected (${names}). ` +
+      'These may break context menus and commands. Uninstall old AAHP extensions for best results.',
+      'Uninstall Conflicts',
+      'Dismiss'
+    ).then(async choice => {
+      if (choice === 'Uninstall Conflicts') {
+        for (const ext of conflicting) {
+          try {
+            await vscode.commands.executeCommand('workbench.extensions.uninstallExtension', ext.id)
+          } catch { /* best-effort */ }
+        }
+        vscode.window.showInformationMessage('AAHP: Conflicting extensions removed. Please reload VS Code.')
+      }
+    })
+  }
 
   console.log('AAHP Orchestrator activated', currentCtx ? `- project: ${currentCtx.manifest.project}` : '- no AAHP context')
 }

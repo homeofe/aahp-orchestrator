@@ -8,11 +8,13 @@ import {
   saveManifest,
   getWorkspaceRoot,
   parseNextActions,
+  buildSystemPrompt,
+  scanAllRepoOverviews,
 } from './aahp-reader'
 import { scanAllRepos, spawnAllAgents, retryFailedAgent, getDevRoot, AgentRun, buildAgentPrompt, cancelAgent } from './agent-spawner'
 import { SessionMonitor } from './session-monitor'
 import { AahpDashboardProvider } from './sidebar'
-import { FlatTask, TaskTreeProvider } from './task-tree'
+import { FlatTask, TaskTreeProvider, flattenOpenTasks } from './task-tree'
 import { AgentLogStore, AgentLogEntry } from './agent-log'
 const PHASES = ['research', 'architecture', 'implementation', 'review', 'fix', 'release']
 
@@ -96,6 +98,18 @@ export function registerCommands(
       saveManifest(ctx, updated)
       reloadCtx()
       vscode.window.showInformationMessage(`AAHP: Phase set to "${picked}" ✓`)
+    }),
+
+    // ── Copy Context to Clipboard ───────────────────────────────────────────
+    vscode.commands.registerCommand('aahp.copyContext', async () => {
+      const ctx = getCtx()
+      if (!ctx) {
+        vscode.window.showWarningMessage('AAHP: No MANIFEST.json found.')
+        return
+      }
+      const prompt = buildSystemPrompt(ctx)
+      await vscode.env.clipboard.writeText(prompt)
+      vscode.window.showInformationMessage(`AAHP: Context copied to clipboard (${prompt.length} chars)`)
     }),
 
     // ── Open Dashboard ────────────────────────────────────────────────────────
@@ -381,8 +395,34 @@ export function registerCommands(
     // ── Launch Task from Tree View (inline play button) ─────────────────────
     vscode.commands.registerCommand('aahp.launchTask', async (element: FlatTask) => {
       if (!element?.repoPath || !element?.taskId) {
-        vscode.window.showWarningMessage('AAHP: No task selected.')
-        return
+        // Fallback: if invoked from command palette without context, show a picker
+        const devRoot = getDevRoot()
+        if (devRoot) {
+          const overviews = scanAllRepoOverviews(devRoot)
+          const tasks = flattenOpenTasks(overviews)
+          if (tasks.length > 0) {
+            const items = tasks.map(t => ({
+              label: `[${t.taskId}] ${t.task.title}`,
+              description: `${t.repoName} - ${t.task.status} (${t.task.priority})`,
+              flatTask: t,
+            }))
+            const picked = await vscode.window.showQuickPick(items, {
+              title: 'AAHP: Select task to launch',
+              placeHolder: 'Pick a task...',
+            })
+            if (picked) {
+              element = picked.flatTask
+            } else {
+              return
+            }
+          } else {
+            vscode.window.showInformationMessage('AAHP: No open tasks found.')
+            return
+          }
+        } else {
+          vscode.window.showWarningMessage('AAHP: No task selected.')
+          return
+        }
       }
       const { repoPath, repoName, taskId, task } = element
 
