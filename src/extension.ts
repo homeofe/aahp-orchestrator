@@ -107,6 +107,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     promptDevRootIfNeeded(context).then(() => refreshAll())
   }
 
+  // ── Clean startup: full refresh after all providers are registered ──────────
+  // Without this, the dashboard renders with incomplete state (no repo overviews,
+  // no focused repo, stale session data) because the initial activation only
+  // calls dashboardProvider.update() before scanAllRepoOverviews() is available.
+  refreshAll()
+
   // ── Chat participant (@aahp) ─────────────────────────────────────────────────
   context.subscriptions.push(
     registerChatParticipant(context, getCtx)
@@ -119,15 +125,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // ── Session Monitor ─────────────────────────────────────────────────────────
   const monitor = new SessionMonitor(context)
-  await monitor.clearStaleSessions()
-  await monitor.clearQueue()  // also clear any tasks stuck in queue from previous stale sessions
 
-  // ── Session monitor live updates ────────────────────────────────────────────
+  // Register onChange BEFORE clearing stale data so the dashboard is notified
   monitor.onChange(() => {
     const sessions = monitor.getActiveSessions()
     const queue = monitor.getQueue()
     dashboardProvider.updateSessionState(sessions, queue)
   })
+
+  await monitor.clearStaleSessions()
+  await monitor.clearQueue()  // also clear any tasks stuck in queue from previous stale sessions
 
   // ── Commands ────────────────────────────────────────────────────────────────
   for (const d of registerCommands(context, getCtx, refreshAll, (runs: AgentRun[]) => {

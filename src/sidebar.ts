@@ -62,6 +62,13 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
     webviewView.webview.options = { enableScripts: true }
     webviewView.webview.html = this._getHtml(webviewView.webview)
 
+    // Re-render with fresh state whenever the sidebar becomes visible
+    webviewView.onDidChangeVisibility(() => {
+      if (webviewView.visible) {
+        this._render()
+      }
+    })
+
     webviewView.webview.onDidReceiveMessage(msg => {
       switch (msg.command) {
         case 'updateManifest': vscode.commands.executeCommand('aahp.updateManifest'); break

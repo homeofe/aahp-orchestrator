@@ -141,10 +141,53 @@
       },
       {
         "command": "aahp.refreshAll",
-        "title": "AAHP: Refresh Dashboard"
+        "title": "AAHP: Refresh Dashboard",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "aahp.setTaskStatusFromTree",
+        "title": "Set Status...",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "aahp.focusRepoFromTree",
+        "title": "Show in Dashboard",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "aahp.copyTaskId",
+        "title": "Copy Task ID",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "aahp.openManifest",
+        "title": "Open MANIFEST.json",
+        "icon": "$(json)"
+      },
+      {
+        "command": "aahp.createTaskFromTree",
+        "title": "Create Task in Repo...",
+        "icon": "$(add)"
+      },
+      {
+        "command": "aahp.markTaskDone",
+        "title": "Mark as Done",
+        "icon": "$(check)"
+      },
+      {
+        "command": "aahp.setTaskPriorityFromTree",
+        "title": "Set Priority...",
+        "icon": "$(arrow-up)"
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "aahp.refreshAll",
+          "when": "view == aahp.allTasks",
+          "group": "navigation"
+        }
+      ],
       "view/item/context": [
         {
           "command": "aahp.launchTask",
@@ -155,6 +198,56 @@
           "command": "aahp.openTaskOnGitHub",
           "when": "view == aahp.allTasks && viewItem == task",
           "group": "inline@2"
+        },
+        {
+          "command": "aahp.launchTask",
+          "when": "view == aahp.allTasks && viewItem == task",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "aahp.markTaskDone",
+          "when": "view == aahp.allTasks && viewItem == task",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "aahp.setTaskStatusFromTree",
+          "when": "view == aahp.allTasks && viewItem == task",
+          "group": "2_status@1"
+        },
+        {
+          "command": "aahp.setTaskPriorityFromTree",
+          "when": "view == aahp.allTasks && viewItem == task",
+          "group": "2_status@2"
+        },
+        {
+          "command": "aahp.focusRepoFromTree",
+          "when": "view == aahp.allTasks && viewItem == task",
+          "group": "3_navigation@1"
+        },
+        {
+          "command": "aahp.openTaskOnGitHub",
+          "when": "view == aahp.allTasks && viewItem == task",
+          "group": "3_navigation@2"
+        },
+        {
+          "command": "aahp.openManifest",
+          "when": "view == aahp.allTasks && viewItem == task",
+          "group": "3_navigation@3"
+        },
+        {
+          "command": "aahp.copyTaskId",
+          "when": "view == aahp.allTasks && viewItem == task",
+          "group": "4_misc@1"
+        },
+        {
+          "command": "aahp.createTaskFromTree",
+          "when": "view == aahp.allTasks && viewItem == task",
+          "group": "4_misc@2"
+        },
+        {
+          "command": "aahp.createTaskFromTree",
+          "when": "view == aahp.allTasks && viewItem == priorityGroup",
+          "group": "1_actions@1"
         }
       ]
     },

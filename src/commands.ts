@@ -485,6 +485,82 @@ export function registerCommands(
       vscode.window.showInformationMessage('AAHP: Dashboard refreshed')
     }),
 
+    // ── Set Task Status from Tree View (context menu) ────────────────────────
+    vscode.commands.registerCommand('aahp.setTaskStatusFromTree', async (element: FlatTask) => {
+      if (!element?.repoPath || !element?.taskId) return
+      const picked = await vscode.window.showQuickPick(
+        ['ready', 'in_progress', 'blocked', 'pending', 'done'],
+        { title: `Set status for [${element.taskId}]`, placeHolder: `Current: ${element.task.status}` }
+      )
+      if (!picked) return
+      vscode.commands.executeCommand('aahp.setTaskStatus', element.repoPath, element.taskId, picked)
+    }),
+
+    // ── Mark Task Done from Tree View (quick action) ─────────────────────────
+    vscode.commands.registerCommand('aahp.markTaskDone', async (element: FlatTask) => {
+      if (!element?.repoPath || !element?.taskId) return
+      vscode.commands.executeCommand('aahp.setTaskStatus', element.repoPath, element.taskId, 'done')
+    }),
+
+    // ── Set Task Priority from Tree View (context menu) ──────────────────────
+    vscode.commands.registerCommand('aahp.setTaskPriorityFromTree', async (element: FlatTask) => {
+      if (!element?.repoPath || !element?.taskId) return
+
+      const picked = await vscode.window.showQuickPick(
+        ['high', 'medium', 'low'],
+        { title: `Set priority for [${element.taskId}]`, placeHolder: `Current: ${element.task.priority}` }
+      )
+      if (!picked) return
+
+      const manifestPath = path.join(element.repoPath, '.ai', 'handoff', 'MANIFEST.json')
+      try {
+        const raw = fs.readFileSync(manifestPath, 'utf8')
+        const manifest = JSON.parse(raw)
+        if (manifest.tasks?.[element.taskId]) {
+          manifest.tasks[element.taskId].priority = picked
+          fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8')
+          reloadCtx()
+          vscode.window.showInformationMessage(`AAHP: ${element.taskId} priority -> ${picked}`)
+        }
+      } catch (err) {
+        vscode.window.showWarningMessage(`AAHP: Failed to update priority - ${String(err)}`)
+      }
+    }),
+
+    // ── Focus Repo from Tree View (context menu) ─────────────────────────────
+    vscode.commands.registerCommand('aahp.focusRepoFromTree', (element: FlatTask) => {
+      if (!element?.repoPath) return
+      vscode.commands.executeCommand('aahp.focusRepo', element.repoPath)
+      // Also open the dashboard sidebar
+      vscode.commands.executeCommand('aahp.dashboard.focus')
+    }),
+
+    // ── Copy Task ID to Clipboard ────────────────────────────────────────────
+    vscode.commands.registerCommand('aahp.copyTaskId', (element: FlatTask) => {
+      if (!element?.taskId) return
+      vscode.env.clipboard.writeText(element.taskId)
+      vscode.window.showInformationMessage(`AAHP: Copied "${element.taskId}" to clipboard`)
+    }),
+
+    // ── Open MANIFEST.json for a task's repo ─────────────────────────────────
+    vscode.commands.registerCommand('aahp.openManifest', async (element: FlatTask) => {
+      if (!element?.repoPath) return
+      const manifestPath = path.join(element.repoPath, '.ai', 'handoff', 'MANIFEST.json')
+      try {
+        const doc = await vscode.workspace.openTextDocument(manifestPath)
+        await vscode.window.showTextDocument(doc)
+      } catch {
+        vscode.window.showWarningMessage('AAHP: Could not open MANIFEST.json')
+      }
+    }),
+
+    // ── Create Task from Tree View (context menu) ────────────────────────────
+    vscode.commands.registerCommand('aahp.createTaskFromTree', async (element: FlatTask | { kind: 'priority-group' }) => {
+      // If invoked from a task node, use its repo path
+      const repoPath = (element as FlatTask)?.repoPath
+      vscode.commands.executeCommand('aahp.createTask', repoPath)
+    }),
+
     // ── Create Task ──────────────────────────────────────────────────────────────
     vscode.commands.registerCommand('aahp.createTask', async (repoPath?: string) => {
       // Determine which repo to create the task in
