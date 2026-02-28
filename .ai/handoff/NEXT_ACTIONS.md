@@ -10,8 +10,8 @@
 
 | Status | Count | Tasks |
 |--------|-------|-------|
-| Done | 12 | T-001, T-002, T-004, T-005, T-006, T-007, T-008, T-009, T-010, T-011, T-012 |
-| Ready | 1 | T-013 |
+| Done | 13 | T-001, T-002, T-004, T-005, T-006, T-007, T-008, T-009, T-010, T-011, T-012, T-013 |
+| Ready | 0 | - |
 | Blocked | 0 | - |
 | Pending | 1 | T-003 |
 
@@ -19,33 +19,7 @@
 
 ## Ready - Work These Next
 
-### T-013: Test chat-participant and context-injector
-**Priority:** medium | **GitHub Issue:** #3 in homeofe/aahp-orchestrator
-
-**Goal:** Add unit tests for the two modules that were previously untested ("assumed" trust level).
-
-**Context:** T-009 already added 58 tests (45 for chat-participant, 13 for context-injector) in `src/__tests__/chat-participant.test.ts` and `src/__tests__/context-injector.test.ts`. However, this task was created from NEXT_ACTIONS before T-009 was completed, so the work may already be fully covered. Verify and close if duplicate.
-
-**What to do:**
-1. Check existing tests in `src/__tests__/chat-participant.test.ts` (45 tests) and `src/__tests__/context-injector.test.ts` (13 tests)
-2. If coverage meets or exceeds the requirement (15+ chat-participant, 5+ context-injector), mark T-013 as done
-3. If gaps remain, add the missing tests
-4. Run `npm test` to verify all 234 unit tests pass
-5. Run `npm run test:integration` to verify 26 integration tests pass
-
-**Files:**
-- `src/__tests__/chat-participant.test.ts` - 45 existing tests
-- `src/__tests__/context-injector.test.ts` - 13 existing tests
-- `src/chat-participant.ts` - module under test
-- `src/context-injector.ts` - module under test
-
-**Definition of done:**
-- At least 15 tests for chat-participant (currently 45 - likely already done)
-- At least 5 tests for context-injector (currently 13 - likely already done)
-- All tests pass (`npm test` and `npm run test:integration`)
-- Close GitHub issue #3
-
----
+*(No ready tasks - all development tasks are done)*
 
 T-003 (Publish to VS Code Marketplace) is pending human action: the project owner
 needs to configure a VSCE_PAT secret. Once that is done, run `npm run publish`
@@ -63,11 +37,11 @@ or push a `v*` tag to trigger the release workflow.
 
 | Task | What Was Done | When |
 |------|--------------|------|
+| T-013: Test chat-participant and context-injector | Verified: T-009 already added 45 chat-participant tests and 13 context-injector tests (58 total, requirement was 20). All 234 unit tests pass. Closed as duplicate/verified. | 2026-02-28 |
 | T-012: Integration tests with VS Code extension host | Expanded integration tests from 10 to 26 across 5 suites (configuration, package metadata, command execution, dashboard webview). All 26 pass in real VS Code extension host. | 2026-02-28 |
 | T-011: Dashboard task filtering and sorting | New "All Tasks" section in dashboard webview with filter controls (status, priority, repo) and sorting (priority then age). Pure functions in src/task-filter.ts with 31 new tests. Total: 234 unit tests (12 suites). | 2026-02-28 |
 | T-010: Integration tests with VS Code extension host | @vscode/test-electron infrastructure: runTest.ts launcher, Mocha test runner, 10 integration tests (activation, command registration, dashboard, keybindings, chat participant, views). CI updated with xvfb integration test step. | 2026-02-28 |
 | T-009: Test chat-participant and context-injector | 58 new tests: chat-participant (45 tests: all slash commands, free-form AI, followup provider) and context-injector (13 tests: copy command, banner notification). Total: 203 tests, 11 suites. | 2026-02-28 |
-| T-008: GitHub release workflow | Tag-triggered release.yml: compile, lint, test, vsce package, create GitHub Release with .vsix asset, extract CHANGELOG notes, optional Marketplace publish via VSCE_PAT | 2026-02-28 |
 
 ---
 
