@@ -1478,6 +1478,7 @@ function readRunnerMetrics(limit = 200): RunnerMetric[] {
       try {
         parsed.push(JSON.parse(line) as RunnerMetric)
       } catch {
+        continue
       }
     }
     return limit > 0 ? parsed.slice(-limit) : parsed
