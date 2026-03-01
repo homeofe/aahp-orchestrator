@@ -266,6 +266,73 @@ function createMissingGitHubIssues(
   return updated
 }
 
+/** Ensure every actionable NEXT_ACTIONS item (ready/in_progress/blocked) has a
+ *  corresponding MANIFEST task. Agents following the AAHP protocol may write
+ *  NEXT_ACTIONS.md without ever touching MANIFEST - this bridges that gap so that
+ *  createMissingGitHubIssues() can subsequently create GitHub issues for them.
+ *
+ *  Items are matched by:
+ *   1. Explicit taskId in the NEXT_ACTIONS item (e.g. "### T-016: …")
+ *   2. Normalized title fuzzy match against existing MANIFEST tasks
+ *
+ *  Unmatched items get a fresh T-NNN entry written to MANIFEST.json. */
+function syncNextActionsToManifest(
+  handoffDir: string,
+  manifest: AahpManifest,
+  nextActions: NextActionItem[]
+): AahpManifest {
+  const tasks = manifest.tasks ?? {}
+  let nextId = manifest.next_task_id ?? (Object.keys(tasks).length + 1)
+  let changed = false
+
+  // Pre-build a set of normalized titles for collision detection
+  const existingTitles = new Set(Object.values(tasks).map(t => normalizeTitle(t.title)))
+
+  for (const item of nextActions) {
+    // Only process actionable sections
+    if (item.section !== 'ready' && item.section !== 'in_progress' && item.section !== 'blocked') continue
+    // Skip headings / very short tokens that slipped through the parser
+    if (!item.title || item.title.trim().length < 8) continue
+
+    // Already linked to an existing MANIFEST task
+    if (item.taskId && tasks[item.taskId]) continue
+    // Title already covered by an existing MANIFEST task
+    if (existingTitles.has(normalizeTitle(item.title))) continue
+
+    // Find the next free T-NNN slot
+    while (tasks[`T-${String(nextId).padStart(3, '0')}`]) nextId++
+    const taskId = item.taskId ?? `T-${String(nextId).padStart(3, '0')}`
+
+    const status: AahpTask['status'] =
+      item.section === 'in_progress' ? 'in_progress' :
+      item.section === 'blocked' ? 'blocked' : 'ready'
+    const priority: AahpTask['priority'] =
+      item.priority === 'high' ? 'high' :
+      item.priority === 'low'  ? 'low'  : 'medium'
+
+    tasks[taskId] = {
+      title: item.title.trim(),
+      status,
+      priority,
+      depends_on: [],
+      created: new Date().toISOString(),
+      ...(item.detail ? { notes: item.detail } : {}),
+    }
+    existingTitles.add(normalizeTitle(item.title))
+    nextId++
+    changed = true
+  }
+
+  if (!changed) return manifest
+  const updatedManifest: AahpManifest = { ...manifest, tasks, next_task_id: nextId }
+  fs.writeFileSync(
+    path.join(handoffDir, 'MANIFEST.json'),
+    JSON.stringify(updatedManifest, null, 2) + '\n',
+    'utf8'
+  )
+  return updatedManifest
+}
+
 
 export interface AahpFileEntry {
   checksum: string
@@ -536,11 +603,25 @@ export function scanAllRepoOverviews(rootDir: string): RepoOverview[] {
       // Sync GitHub issues ↔ MANIFEST before building the overview
       let manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as AahpManifest
       manifest = fetchAndSyncGitHubIssues(repoPath, handoffDir, manifest)
+
+      // Parse NEXT_ACTIONS.md early so we can sync orphan items into MANIFEST
+      // before creating GitHub issues. Agents using pure AAHP protocol write
+      // NEXT_ACTIONS.md without touching MANIFEST, so this bridges the gap.
+      const nextActionsMd = readFile(handoffDir, 'NEXT_ACTIONS.md')
+      let nextActions = nextActionsMd ? parseNextActions(nextActionsMd) : []
+      nextActions = inferSectionsFromManifest(nextActions, manifest.tasks ?? {})
+
+      // Ensure all actionable NEXT_ACTIONS items have a MANIFEST entry,
+      // then create GitHub issues for any MANIFEST task still missing one.
+      manifest = syncNextActionsToManifest(handoffDir, manifest, nextActions)
       manifest = createMissingGitHubIssues(repoPath, handoffDir, manifest)
+
+      // After creating issues, re-run inferSections so newly-added taskIds
+      // and github_issue numbers are reflected in the nextActions list.
+      nextActions = inferSectionsFromManifest(nextActions, manifest.tasks ?? {})
 
       const tasks = manifest.tasks ?? {}
       const taskEntries = Object.values(tasks)
-
       const taskCounts = {
         total: taskEntries.length,
         ready: taskEntries.filter(t => t.status === 'ready').length,
@@ -549,22 +630,13 @@ export function scanAllRepoOverviews(rootDir: string): RepoOverview[] {
         blocked: taskEntries.filter(t => t.status === 'blocked').length,
         pending: taskEntries.filter(t => t.status === 'pending').length,
       }
-
       const lastActivity = manifest.last_session?.timestamp ?? ''
       const daysSinceActivity = lastActivity
         ? (Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24)
         : Infinity
-
       let health: 'healthy' | 'stale' | 'no-tasks' = 'healthy'
       if (taskCounts.total === 0) health = 'no-tasks'
       else if (daysSinceActivity > 7) health = 'stale'
-
-      // Parse NEXT_ACTIONS.md for structured next-step items
-      const nextActionsMd = readFile(handoffDir, 'NEXT_ACTIONS.md')
-      let nextActions = nextActionsMd ? parseNextActions(nextActionsMd) : []
-
-      // Cross-reference with MANIFEST.json to fix 'unknown' sections
-      nextActions = inferSectionsFromManifest(nextActions, tasks)
 
       // Detect GitHub remote URL
       const githubUrl = getGithubUrl(repoPath)
