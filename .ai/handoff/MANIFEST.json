@@ -12,25 +12,25 @@
   "files": {
     "STATUS.md": {
       "checksum": "sha256:(pending)",
-      "updated": "2026-02-27T22:00:00.000Z",
+      "updated": "2026-02-27T22:00:00Z",
       "lines": 91,
       "summary": "v0.2.0 packaged. Build health verified. 72 tests. 9 gaps mapped to task IDs. 5 components assumed."
     },
     "NEXT_ACTIONS.md": {
       "checksum": "sha256:(pending)",
-      "updated": "2026-02-28T00:48:00.000Z",
+      "updated": "2026-02-28T00:48:00Z",
       "lines": 150,
       "summary": "1 open task: filtering (T-011). 11 done."
     },
     "LOG.md": {
       "checksum": "sha256:(pending)",
-      "updated": "2026-02-27T22:00:00.000Z",
+      "updated": "2026-02-27T22:00:00Z",
       "lines": 90,
       "summary": "3 sessions: task audit (2026-02-27), CI pipeline T-001 (2026-02-27), bootstrap (2026-02-27)."
     },
     "DASHBOARD.md": {
       "checksum": "sha256:(pending)",
-      "updated": "2026-02-27T22:00:00.000Z",
+      "updated": "2026-02-27T22:00:00Z",
       "lines": 110,
       "summary": "9 components with test counts. 72 tests across 5 suites. 9 open tasks (6 ready, 3 blocked). T-004 + T-005 are next."
     },
@@ -75,7 +75,7 @@
       "priority": "high",
       "depends_on": [],
       "created": "2026-02-27T14:09:01.402Z",
-      "completed": "2026-02-27T15:36:00.000Z"
+      "completed": "2026-02-27T15:36:00Z"
     },
     "T-003": {
       "title": "Publish to VS Code Marketplace",
@@ -86,14 +86,16 @@
       ],
       "created": "2026-02-27T14:09:01.402Z",
       "notes": "Needs VSCE_PAT GitHub Actions secret from project owner. T-004 dependency is done but still requires human to provide VSCE_PAT.",
-      "completed": "2026-02-27T23:49:21.664Z"
+      "completed": "2026-02-27T23:49:21.664Z",
+      "github_repo": "homeofe/aahp-orchestrator",
+      "github_issue": 6
     },
     "T-004": {
       "title": "Add CHANGELOG.md",
       "status": "done",
       "priority": "high",
       "depends_on": [],
-      "created": "2026-02-27T22:00:00.000Z",
+      "created": "2026-02-27T22:00:00Z",
       "notes": "Required for VS Code Marketplace. Document v0.1.0 and v0.2.0 changes.",
       "completed": "2026-02-27T22:41:38.476Z"
     },
@@ -102,7 +104,7 @@
       "status": "done",
       "priority": "high",
       "depends_on": [],
-      "created": "2026-02-27T22:00:00.000Z",
+      "created": "2026-02-27T22:00:00Z",
       "notes": "Add a unified 'All Open Tasks' section to the sidebar dashboard that lists open/ready/in_progress tasks across all scanned repos, sorted by priority.",
       "completed": "2026-02-27T22:48:00.483Z"
     },
@@ -111,7 +113,7 @@
       "status": "done",
       "priority": "medium",
       "depends_on": [],
-      "created": "2026-02-27T22:00:00.000Z",
+      "created": "2026-02-27T22:00:00Z",
       "notes": "Currently can only change task status via dropdown. Add 'New Task' button/command that creates a task in MANIFEST.json with title, priority, and optional depends_on.",
       "completed": "2026-02-27T22:54:22.513Z"
     },
@@ -120,7 +122,7 @@
       "status": "done",
       "priority": "medium",
       "depends_on": [],
-      "created": "2026-02-27T22:00:00.000Z",
+      "created": "2026-02-27T22:00:00Z",
       "notes": "When an agent fails (status=failed), offer a retry button in the dashboard. Add configurable max retries (default 1) with exponential backoff.",
       "completed": "2026-02-27T23:08:55.376Z"
     },
@@ -131,7 +133,7 @@
       "depends_on": [
         "T-004"
       ],
-      "created": "2026-02-27T22:00:00.000Z",
+      "created": "2026-02-27T22:00:00Z",
       "notes": "Add .github/workflows/release.yml triggered on 'git tag v*'. Build .vsix, create GitHub release with asset, optionally publish to Marketplace.",
       "completed": "2026-02-28T12:50:40.576Z"
     },
@@ -140,7 +142,7 @@
       "status": "done",
       "priority": "medium",
       "depends_on": [],
-      "created": "2026-02-27T22:00:00.000Z",
+      "created": "2026-02-27T22:00:00Z",
       "notes": "chat-participant and context-injector are 'assumed' - no unit tests. Add tests for slash command handlers (help, status, tasks, next, done, phase) and context clipboard copy.",
       "completed": "2026-02-28T13:51:49.918Z"
     },
@@ -149,7 +151,7 @@
       "status": "done",
       "priority": "low",
       "depends_on": [],
-      "created": "2026-02-27T22:00:00.000Z",
+      "created": "2026-02-27T22:00:00Z",
       "notes": "Set up @vscode/test-electron for integration tests that run inside a real VS Code instance. Test activation, command registration, webview rendering.",
       "completed": "2026-02-28T14:49:36.754Z"
     },
@@ -160,7 +162,7 @@
       "depends_on": [
         "T-005"
       ],
-      "created": "2026-02-27T22:00:00.000Z",
+      "created": "2026-02-27T22:00:00Z",
       "notes": "Add filter controls to the aggregated task view: filter by status (ready/blocked/done), by priority (high/medium/low), by repo. Sort by priority then age.",
       "completed": "2026-02-28T15:15:31.247Z"
     },

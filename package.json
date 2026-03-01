@@ -114,6 +114,10 @@
         "title": "AAHP: Run Repo Autonomously"
       },
       {
+        "command": "aahp.createMissingGitHubIssues",
+        "title": "AAHP: Create Missing GitHub Issues"
+      },
+      {
         "command": "aahp.focusRepo",
         "title": "AAHP: Focus Repo in Dashboard"
       },

@@ -289,6 +289,9 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
             vscode.env.openExternal(vscode.Uri.parse(msg.url))
           }
           break
+        case 'createMissingIssues':
+          vscode.commands.executeCommand('aahp.createMissingGitHubIssues', msg.repoPath)
+          break
       }
     })
   }
@@ -1177,6 +1180,7 @@ h2 { font-size: 14px; margin: 0 0 4px; }
     let html = `<div class="section-header${isCollapsed ? ' collapsed' : ''}" data-cmd="toggleSection" data-section="nextsteps">
       <span>Next Steps (${totalActionable})</span>
       <span style="display:flex;align-items:center;gap:4px">
+        <button class="btn btn-secondary" style="font-size:9px;padding:1px 6px;text-transform:none;letter-spacing:0" data-cmd="createMissingIssues">Create Issues</button>
         <button class="btn btn-secondary" style="font-size:9px;padding:1px 6px;text-transform:none;letter-spacing:0" data-cmd="refreshNextActions">Refresh</button>
         <span class="chevron">&#9660;</span>
       </span>
@@ -1201,8 +1205,9 @@ h2 { font-size: 14px; margin: 0 0 4px; }
         const fixBtn = item.taskId
           ? `<button class="fix-btn" data-cmd="fixTask" data-repo-path="${escHtml(repo.repoPath)}" data-task-id="${escHtml(item.taskId)}" title="Run agent to fix this task">&#9654;</button>`
           : ''
+        const linkedIssue = item.taskId ? repo.manifest.tasks?.[item.taskId]?.github_issue : undefined
         const ghIssueBtn = (item.taskId && repo.githubUrl)
-          ? `<a class="gh-link" data-cmd="openUrl" data-url="${escHtml(repo.githubUrl)}/issues?q=${escHtml(item.taskId)}" title="Search GitHub Issues for ${escHtml(item.taskId)}">GH</a>`
+          ? `<a class="gh-link" data-cmd="openUrl" data-url="${linkedIssue ? `${escHtml(repo.githubUrl)}/issues/${linkedIssue}` : `${escHtml(repo.githubUrl)}/issues?q=${escHtml(item.taskId)}`}" title="${linkedIssue ? `Open linked GitHub Issue #${linkedIssue}` : `Search GitHub Issues for ${escHtml(item.taskId)}`}">GH</a>`
           : ''
 
         const dblData = item.taskId
@@ -1318,7 +1323,7 @@ h2 { font-size: 14px; margin: 0 0 4px; }
         ? `<button class="fix-btn" data-cmd="fixTask" data-repo-path="${escHtml(repoPath)}" data-task-id="${escHtml(id)}" title="Run agent to fix this task">&#9654;</button>`
         : ''
       const ghIssueBtn = repoGhUrl
-        ? `<a class="gh-link" data-cmd="openUrl" data-url="${escHtml(repoGhUrl)}/issues?q=${escHtml(id)}" title="Search GitHub Issues for ${escHtml(id)}">GH</a>`
+        ? `<a class="gh-link" data-cmd="openUrl" data-url="${typeof t.github_issue === 'number' && t.github_issue > 0 ? `${escHtml(repoGhUrl)}/issues/${t.github_issue}` : `${escHtml(repoGhUrl)}/issues?q=${escHtml(id)}`}" title="${typeof t.github_issue === 'number' && t.github_issue > 0 ? `Open linked GitHub Issue #${t.github_issue}` : `Search GitHub Issues for ${escHtml(id)}`}">GH</a>`
         : ''
 
       const dblAttr = t.status !== 'done'
@@ -1355,6 +1360,7 @@ h2 { font-size: 14px; margin: 0 0 4px; }
       <div class="actions-bar">
         <button class="btn btn-secondary" data-cmd="updateManifest">Checksums</button>
         <button class="btn btn-secondary" data-cmd="commitSession">Commit</button>
+        <button class="btn btn-secondary" data-cmd="createMissingIssues">Create Issues</button>
         <button class="btn btn-secondary" data-cmd="setPhase">Phase</button>
         <button class="btn btn-secondary" data-cmd="copyContext">Context</button>
       </div>

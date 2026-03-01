@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
+import { execFileSync } from 'child_process'
 import {
   AahpContext,
   loadAahpContextByPath,
@@ -28,6 +29,85 @@ function launchRunner(cwd: string, args: string[], terminalName: string): void {
   const terminal = vscode.window.createTerminal({ name: terminalName, cwd })
   terminal.sendText(`npx aahp-runner run ${args.join(' ')}`)
   terminal.show()
+}
+
+interface GitHubRemoteInfo {
+  repoUrl: string
+  repoSlug: string
+}
+
+function getGitHubRemoteInfo(repoPath: string): GitHubRemoteInfo | undefined {
+  const gitConfigPath = path.join(repoPath, '.git', 'config')
+  if (!fs.existsSync(gitConfigPath)) return undefined
+
+  try {
+    const content = fs.readFileSync(gitConfigPath, 'utf8')
+    const originMatch = content.match(/\[remote\s+"origin"\][^[]*url\s*=\s*(.+)/m)
+    if (!originMatch?.[1]) return undefined
+    const remoteUrl = originMatch[1].trim()
+
+    const sshMatch = remoteUrl.match(/git@github\.com:(.+?)(?:\.git)?$/)
+    if (sshMatch?.[1]) {
+      return {
+        repoUrl: `https://github.com/${sshMatch[1]}`,
+        repoSlug: sshMatch[1],
+      }
+    }
+
+    const httpsMatch = remoteUrl.match(/https:\/\/github\.com\/([^/]+\/[^/]+?)(?:\.git)?$/)
+    if (httpsMatch?.[1]) {
+      return {
+        repoUrl: `https://github.com/${httpsMatch[1]}`,
+        repoSlug: httpsMatch[1],
+      }
+    }
+
+    return undefined
+  } catch {
+    return undefined
+  }
+}
+
+function extractIssueNumberFromText(text: string): number | undefined {
+  const match = text.match(/\/issues\/(\d+)/)
+  if (!match?.[1]) return undefined
+  const num = Number.parseInt(match[1], 10)
+  return Number.isFinite(num) ? num : undefined
+}
+
+function findIssueNumberByTaskId(repoPath: string, repoSlug: string, taskId: string): number | undefined {
+  try {
+    const output = execFileSync(
+      'gh',
+      [
+        'issue',
+        'list',
+        '--repo', repoSlug,
+        '--state', 'all',
+        '--search', `${taskId} in:title`,
+        '--json', 'number,title',
+        '--limit', '20',
+      ],
+      {
+        cwd: repoPath,
+        encoding: 'utf8',
+        timeout: 20000,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }
+    )
+
+    const parsed = JSON.parse(output) as Array<{ number?: number; title?: string }>
+    for (const issue of parsed) {
+      if (!issue.number || !issue.title) continue
+      if (new RegExp(`\\b${taskId}\\b`, 'i').test(issue.title)) {
+        return issue.number
+      }
+    }
+
+    return parsed.find(i => typeof i.number === 'number')?.number
+  } catch {
+    return undefined
+  }
 }
 
 export function registerCommands(
@@ -232,6 +312,165 @@ export function registerCommands(
       ], `AAHP Runner (${repoName} auto)`)
 
       vscode.window.showInformationMessage(`AAHP: Autonomous run started for ${repoName}.`)
+    }),
+
+    // ── Create / Link Missing GitHub Issues for open tasks ───────────────────
+    vscode.commands.registerCommand('aahp.createMissingGitHubIssues', async (repoPath?: string) => {
+      const targetRepoPaths: string[] = []
+
+      if (repoPath) {
+        targetRepoPaths.push(repoPath)
+      } else {
+        const devRoot = getDevRoot()
+        if (devRoot) {
+          const overviews = scanAllRepoOverviews(devRoot)
+          for (const repo of overviews) {
+            targetRepoPaths.push(repo.repoPath)
+          }
+        } else {
+          const workspaceRoot = getWorkspaceRoot()
+          if (workspaceRoot) targetRepoPaths.push(workspaceRoot)
+        }
+      }
+
+      if (targetRepoPaths.length === 0) {
+        vscode.window.showWarningMessage('AAHP: No target repositories found for issue creation.')
+        return
+      }
+
+      const uniqueTargets = [...new Set(targetRepoPaths)]
+      const scopeLabel = uniqueTargets.length === 1
+        ? path.basename(uniqueTargets[0]!)
+        : `${uniqueTargets.length} repositories`
+
+      const confirm = await vscode.window.showInformationMessage(
+        `AAHP: Create or link missing GitHub issues for open tasks in ${scopeLabel}?`,
+        { modal: true },
+        'Create Issues'
+      )
+      if (confirm !== 'Create Issues') return
+
+      let created = 0
+      let linked = 0
+      let skipped = 0
+      let errors = 0
+      let changedRepos = 0
+
+      for (const targetPath of uniqueTargets) {
+        const manifestPath = path.join(targetPath, '.ai', 'handoff', 'MANIFEST.json')
+        if (!fs.existsSync(manifestPath)) {
+          skipped++
+          continue
+        }
+
+        const remote = getGitHubRemoteInfo(targetPath)
+        if (!remote) {
+          skipped++
+          continue
+        }
+
+        try {
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as {
+            tasks?: Record<string, {
+              title?: string
+              status?: string
+              priority?: string
+              notes?: string
+              github_issue?: number
+              github_repo?: string
+            }>
+          }
+
+          const tasks = manifest.tasks ?? {}
+          let repoChanged = false
+
+          for (const [taskId, task] of Object.entries(tasks)) {
+            if (!task?.title || task.status === 'done') continue
+
+            if (typeof task.github_issue === 'number' && task.github_issue > 0) {
+              if (!task.github_repo) {
+                task.github_repo = remote.repoSlug
+                repoChanged = true
+              }
+              skipped++
+              continue
+            }
+
+            const existingIssueNumber = findIssueNumberByTaskId(targetPath, remote.repoSlug, taskId)
+            if (existingIssueNumber) {
+              task.github_issue = existingIssueNumber
+              task.github_repo = remote.repoSlug
+              linked++
+              repoChanged = true
+              continue
+            }
+
+            const issueTitle = `[${taskId}] ${task.title}`
+            const issueBody = [
+              '## AAHP Task',
+              '',
+              `- Task ID: ${taskId}`,
+              `- Priority: ${task.priority ?? 'medium'}`,
+              `- Status: ${task.status ?? 'ready'}`,
+              '',
+              '## Description',
+              task.title,
+              '',
+              '## Notes',
+              task.notes?.trim() || 'No additional notes provided.',
+            ].join('\n')
+
+            try {
+              const output = execFileSync(
+                'gh',
+                [
+                  'issue',
+                  'create',
+                  '--repo', remote.repoSlug,
+                  '--title', issueTitle,
+                  '--body', issueBody,
+                ],
+                {
+                  cwd: targetPath,
+                  encoding: 'utf8',
+                  timeout: 30000,
+                  stdio: ['ignore', 'pipe', 'pipe'],
+                }
+              )
+
+              const createdIssueNumber = extractIssueNumberFromText(output)
+                ?? findIssueNumberByTaskId(targetPath, remote.repoSlug, taskId)
+
+              if (createdIssueNumber) {
+                task.github_issue = createdIssueNumber
+                task.github_repo = remote.repoSlug
+                created++
+                repoChanged = true
+              } else {
+                errors++
+              }
+            } catch {
+              errors++
+            }
+          }
+
+          if (repoChanged) {
+            fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8')
+            changedRepos++
+          }
+        } catch {
+          errors++
+        }
+      }
+
+      reloadCtx()
+
+      const summary = `AAHP: GitHub issues - created ${created}, linked ${linked}, skipped ${skipped}, errors ${errors}, updated repos ${changedRepos}.`
+      if (errors > 0) {
+        vscode.window.showWarningMessage(summary)
+      } else {
+        vscode.window.showInformationMessage(summary)
+      }
     }),
 
     // ── Set Task Status ────────────────────────────────────────────────────────
@@ -486,25 +725,19 @@ export function registerCommands(
     vscode.commands.registerCommand('aahp.openTaskOnGitHub', async (element: FlatTask) => {
       if (!element?.repoPath || !element?.taskId) return
 
-      // Detect GitHub URL from git config
-      const gitConfigPath = path.join(element.repoPath, '.git', 'config')
-      let ghUrl: string | undefined
-      try {
-        const content = fs.readFileSync(gitConfigPath, 'utf8')
-        const sshMatch = content.match(/url\s*=\s*git@github\.com:(.+?)(?:\.git)?$/m)
-        if (sshMatch?.[1]) ghUrl = `https://github.com/${sshMatch[1]}`
-        else {
-          const httpsMatch = content.match(/url\s*=\s*(https:\/\/github\.com\/[^/]+\/[^/]+?)(?:\.git)?$/m)
-          if (httpsMatch?.[1]) ghUrl = httpsMatch[1]
-        }
-      } catch { /* ignore */ }
-
-      if (!ghUrl) {
+      const remote = getGitHubRemoteInfo(element.repoPath)
+      if (!remote) {
         vscode.window.showWarningMessage('AAHP: No GitHub remote found for this repo.')
         return
       }
 
-      const issueUrl = `${ghUrl}/issues?q=${encodeURIComponent(element.taskId)}`
+      if (typeof element.task?.github_issue === 'number' && element.task.github_issue > 0) {
+        const directIssueUrl = `${remote.repoUrl}/issues/${element.task.github_issue}`
+        vscode.env.openExternal(vscode.Uri.parse(directIssueUrl))
+        return
+      }
+
+      const issueUrl = `${remote.repoUrl}/issues?q=${encodeURIComponent(element.taskId)}`
       vscode.env.openExternal(vscode.Uri.parse(issueUrl))
     }),
 

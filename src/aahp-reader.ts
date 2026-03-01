@@ -20,6 +20,8 @@ export interface AahpTask {
   created: string
   completed?: string
   notes?: string
+  github_issue?: number
+  github_repo?: string
 }
 
 export interface AahpManifest {
