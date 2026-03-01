@@ -75,3 +75,44 @@ describe('Dashboard GitHub links', () => {
     expect(html).not.toContain('[T-011]')
   })
 })
+
+describe('Batch mode nesting', () => {
+  it('nested beginBatchUpdate/endBatchUpdate does not render until outermost ends', () => {
+    const provider = new AahpDashboardProvider({} as any)
+
+    // Outer batch (simulates activation)
+    provider.beginBatchUpdate()
+    expect(provider.isInBatchMode()).toBe(true)
+
+    // Inner batch (simulates refreshAll)
+    provider.beginBatchUpdate()
+    expect(provider.isInBatchMode()).toBe(true)
+
+    // End inner batch - still in outer batch
+    provider.endBatchUpdate()
+    expect(provider.isInBatchMode()).toBe(true)
+
+    // End outer batch - batch mode fully cleared
+    provider.endBatchUpdate()
+    expect(provider.isInBatchMode()).toBe(false)
+  })
+
+  it('single batch level works the same as before', () => {
+    const provider = new AahpDashboardProvider({} as any)
+
+    expect(provider.isInBatchMode()).toBe(false)
+    provider.beginBatchUpdate()
+    expect(provider.isInBatchMode()).toBe(true)
+    provider.endBatchUpdate()
+    expect(provider.isInBatchMode()).toBe(false)
+  })
+
+  it('extra endBatchUpdate calls do not underflow', () => {
+    const provider = new AahpDashboardProvider({} as any)
+
+    provider.beginBatchUpdate()
+    provider.endBatchUpdate()
+    provider.endBatchUpdate() // extra end - should be no-op
+    expect(provider.isInBatchMode()).toBe(false)
+  })
+})

@@ -86,6 +86,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const refreshAll = (): void => {
     reloadContext()
     updateStatusBar(statusBar, currentCtx)
+
+    // Wrap all dashboard updates in batch mode to guarantee a single atomic
+    // render with complete state. Without this, the individual update calls
+    // each trigger _render(), and a sync render (e.g. in resolveWebviewView
+    // or endBatchUpdate) could fire between them, producing a partial UI
+    // (e.g. single-project layout instead of multi-repo grid).
+    // Nesting is safe: if we're already inside a batch (e.g. during
+    // activation), endBatchUpdate only renders when all levels have ended.
+    dashboardProvider.beginBatchUpdate()
+
     dashboardProvider.update(currentCtx)
 
     // Multi-repo overview scan
@@ -101,6 +111,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       const repoRoot = path.dirname(path.dirname(currentCtx.handoffDir))
       dashboardProvider.updateFocusedRepo(repoRoot, currentCtx)
     }
+
+    dashboardProvider.endBatchUpdate()
   }
 
   // Set the refresh callback BEFORE registering the webview provider to prevent
@@ -166,8 +178,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     dashboardProvider.updateSessionState(sessions, queue)
   })
 
-  await monitor.clearStaleSessions()
-  await monitor.clearQueue()  // also clear any tasks stuck in queue from previous stale sessions
+  // Guard against session cleanup failures (e.g. corrupted globalState or
+  // filesystem errors on network drives). Without this try-catch, a thrown
+  // error here crashes the entire activate() function, causing VS Code to
+  // deactivate the extension and making ALL commands unavailable - including
+  // aahp.refreshAll, which is the "intermittent missing command" bug.
+  try {
+    await monitor.clearStaleSessions()
+    await monitor.clearQueue()  // also clear any tasks stuck in queue from previous stale sessions
+  } catch (err) {
+    console.error('AAHP: Session cleanup failed (non-fatal)', err)
+  }
 
   // ── Agent Log Store ────────────────────────────────────────────────────────
   const logStore = new AgentLogStore(context.globalState, context.globalStorageUri)

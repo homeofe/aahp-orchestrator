@@ -57,6 +57,7 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
   private _requestRefresh?: () => void
   private _renderTimer?: ReturnType<typeof setTimeout>
   private _batchMode = false
+  private _batchDepth = 0
   /** Set when endBatchUpdate() fires but _view is undefined - signals that
    *  resolveWebviewView() should do a direct render when it's finally called. */
   private _pendingPostBatchRender = false
@@ -64,15 +65,20 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
   constructor(private readonly extensionUri: vscode.Uri) {}
 
   /** Suppress debounced renders during bulk state updates (e.g. activation).
-   *  Call endBatchUpdate() when done to trigger a single render. */
+   *  Call endBatchUpdate() when done to trigger a single render.
+   *  Supports nesting: multiple begin/end pairs stack correctly. */
   public beginBatchUpdate(): void {
+    this._batchDepth++
     this._batchMode = true
   }
 
   /** End batch mode and trigger one DIRECT (non-debounced) render with all
    *  accumulated state. Using a direct render (instead of the 50ms debounce)
-   *  eliminates the gap where the webview would show stale/blank content. */
+   *  eliminates the gap where the webview would show stale/blank content.
+   *  Only renders when all nested batch levels have ended (depth reaches 0). */
   public endBatchUpdate(): void {
+    if (this._batchDepth > 0) this._batchDepth--
+    if (this._batchDepth > 0) return   // still inside an outer batch
     this._batchMode = false
     // Direct render - bypass debounce to avoid a 50ms blank gap
     if (this._view) {
@@ -80,12 +86,18 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
         clearTimeout(this._renderTimer)
         delete this._renderTimer
       }
+      this._pendingPostBatchRender = false  // we're rendering now, clear pending flag
       this._view.webview.html = this._getHtml(this._view.webview)
     } else {
       // View hasn't been resolved yet (sidebar not visible during activation).
       // Signal that resolveWebviewView should do a direct render when called.
       this._pendingPostBatchRender = true
     }
+  }
+
+  /** Check whether the provider is currently in batch mode (renders suppressed). */
+  public isInBatchMode(): boolean {
+    return this._batchMode
   }
 
   /** Register a callback that fires when the dashboard needs fresh data.
@@ -135,7 +147,7 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
    *  Without this, refreshAll() triggers 3+ full HTML rebuilds in rapid succession. */
   private _render(): void {
     if (!this._view) return
-    if (this._batchMode) return   // suppress renders during bulk activation updates
+    if (this._batchDepth > 0) return   // suppress renders during batch updates
     if (this._renderTimer) clearTimeout(this._renderTimer)
     this._renderTimer = setTimeout(() => {
       if (this._view) {
@@ -162,9 +174,10 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
     })
 
     // Request a full data refresh BEFORE rendering so the provider has current
-    // state from all repos and MANIFEST.json files.
+    // state from all repos and MANIFEST.json files.  refreshAll() internally
+    // uses beginBatchUpdate/endBatchUpdate, which nests correctly with any
+    // outer batch (e.g. during activation).
     const wasBatch = this._batchMode
-    this._batchMode = true  // suppress debounced renders from the refresh
     try {
       if (this._requestRefresh) {
         this._requestRefresh()
@@ -172,7 +185,6 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
     } catch (e) {
       console.error('AAHP: Error during initial dashboard refresh', e)
     }
-    this._batchMode = wasBatch
 
     // Cancel any debounced renders that slipped through.
     if (this._renderTimer) {
@@ -186,7 +198,9 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
     // caused visible blank flashes on Windows as each HTML set generates a new
     // CSP nonce and forces a full webview reload.
     //
-    // Outside batch mode (user opens sidebar after startup), render immediately.
+    // Outside batch mode (user opens sidebar after startup), the refreshAll
+    // batch already rendered via its own endBatchUpdate.  But if that render
+    // didn't fire (e.g. _view was undefined at the time), we need to render now.
     // Also render if endBatchUpdate() already ran but couldn't because the view
     // wasn't resolved yet (_pendingPostBatchRender flag).
     if (!wasBatch || this._pendingPostBatchRender) {
@@ -198,15 +212,16 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
     // HTML set during rapid startup initialization. Schedule a deferred
     // re-render to ensure the dashboard is never blank after activation.
     setTimeout(() => {
-      if (this._view && !this._batchMode) {
+      if (this._view && this._batchDepth === 0) {
         this._view.webview.html = this._getHtml(this._view.webview)
       }
     }, 300)
 
-    // Re-render with fresh state whenever the sidebar becomes visible again
+    // Re-render with fresh state whenever the sidebar becomes visible again.
+    // refreshAll() (via _requestRefresh) handles its own batch mode and renders
+    // atomically, so no explicit _render() call is needed afterwards.
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
-        // Re-fetch data on every visibility change so the dashboard is never stale
         try {
           if (this._requestRefresh) {
             this._requestRefresh()
@@ -214,7 +229,6 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
         } catch (e) {
           console.error('AAHP: Error during visibility-change refresh', e)
         }
-        this._render()
       }
     })
 
