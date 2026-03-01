@@ -1,9 +1,46 @@
 import * as vscode from 'vscode'
+import * as fs from 'fs'
+import * as os from 'os'
+import * as path from 'path'
 import { AahpContext, AahpTask, NextActionItem, RepoOverview, getTopTask } from './aahp-reader'
 import { AgentRun, sessionTokens } from './agent-spawner'
 import { ActiveSession, QueuedTask } from './session-monitor'
 import { AgentLogEntry } from './agent-log'
 import { TaskFilter, DEFAULT_FILTER, filterAndSortTasks, getRepoNames } from './task-filter'
+
+interface RunnerMetric {
+  repo: string
+  durationMs: number
+  success: boolean
+}
+
+interface RunnerSession {
+  repoPath: string
+  repoName: string
+}
+
+interface CronRunResult {
+  projectName: string
+  success: boolean
+  durationMs: number
+  error?: string
+}
+
+interface CronPipelineRun {
+  startedAt: string
+  finishedAt: string
+  totalProjects: number
+  ran: number
+  succeeded: number
+  failed: number
+  skipped: number
+  results: CronRunResult[]
+}
+
+const AAHP_HOME = path.join(os.homedir(), '.aahp')
+const RUNNER_METRICS_FILE = path.join(AAHP_HOME, 'metrics.jsonl')
+const RUNNER_SESSIONS_FILE = path.join(AAHP_HOME, 'sessions.json')
+const CRON_HISTORY_FILE = path.join(AAHP_HOME, 'cron-history.json')
 
 export class AahpDashboardProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView
@@ -194,6 +231,9 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
         case 'runSingleRepo':
           vscode.commands.executeCommand('aahp.runSingleRepo', msg.repoPath)
           break
+        case 'runRepoAutonomous':
+          vscode.commands.executeCommand('aahp.runRepoAutonomous', msg.repoPath)
+          break
         case 'retryAgent':
           vscode.commands.executeCommand('aahp.retryAgent', msg.repoPath, msg.taskId)
           break
@@ -235,6 +275,15 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
         case 'openLogEntry':
           vscode.commands.executeCommand('aahp.openLogEntry', msg.logId)
           break
+        case 'openLatestCronLog': {
+          const latestLog = getLatestCronLogPath()
+          if (!latestLog) {
+            vscode.window.showWarningMessage('AAHP: No cron log file found yet.')
+            break
+          }
+          vscode.commands.executeCommand('vscode.open', vscode.Uri.file(latestLog))
+          break
+        }
         case 'openUrl':
           if (msg.url && typeof msg.url === 'string' && msg.url.startsWith('https://')) {
             vscode.env.openExternal(vscode.Uri.parse(msg.url))
@@ -260,6 +309,8 @@ export class AahpDashboardProvider implements vscode.WebviewViewProvider {
   ${this._renderAgentControl()}
   ${this._renderHistory()}
   ${this._renderRepoGrid()}
+  ${this._renderRunnerMetrics()}
+  ${this._renderCronOverview()}
   ${this._renderAggregatedTasks()}
   ${this._renderNextSteps()}
   ${this._renderFocusedProject()}
@@ -339,6 +390,22 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   margin-bottom: 2px;
+}
+.repo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.repo-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .repo-card .repo-meta {
   font-size: 10px;
@@ -496,6 +563,71 @@ h2 { font-size: 14px; margin: 0 0 4px; }
 .gh-link:hover {
   background: var(--vscode-focusBorder);
   color: var(--vscode-editor-background);
+}
+
+.run-repo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--vscode-widget-border, rgba(128,128,128,0.3));
+  background: var(--vscode-button-secondaryBackground, rgba(128,128,128,0.15));
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.run-repo-btn:hover {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.metric-card {
+  border: 1px solid var(--vscode-widget-border, rgba(128,128,128,0.2));
+  border-radius: 5px;
+  padding: 5px 6px;
+}
+.metric-label {
+  font-size: 10px;
+  opacity: 0.6;
+}
+.metric-value {
+  font-size: 14px;
+  font-weight: 700;
+}
+.metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.metrics-table td {
+  padding: 2px 4px;
+}
+.metrics-table tr:hover td {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.cron-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 6px;
+  font-size: 11px;
+}
+.cron-fail-list {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  font-size: 11px;
+}
+.cron-fail-list li {
+  margin: 2px 0;
 }
 
 /* Next Steps */
@@ -755,13 +887,14 @@ h2 { font-size: 14px; margin: 0 0 4px; }
 
     const isCollapsed = this._collapsedSections.has('repos')
     let html = `<div class="section-header${isCollapsed ? ' collapsed' : ''}" data-cmd="toggleSection" data-section="repos">
-      <span>Repos (${overviews.length})</span>
+      <span>Agents & Projects (${overviews.length})</span>
       <span class="chevron">&#9660;</span>
     </div>`
 
     if (isCollapsed) return html
 
     html += `<div class="repo-grid">`
+    const liveSessions = readRunnerSessions()
 
     for (const r of overviews) {
       const isFocused = this._focusedRepoPath === r.repoPath
@@ -770,22 +903,139 @@ h2 { font-size: 14px; margin: 0 0 4px; }
       const readyCount = r.taskCounts.ready + r.taskCounts.inProgress
       const taskLabel = `${readyCount}/${r.taskCounts.total}`
       const timeAgo = formatTimeAgo(r.lastActivity)
+      const runningCount = liveSessions.filter(s => s.repoPath === r.repoPath || s.repoName === r.repoName).length
 
       const ghLink = r.githubUrl
         ? `<a class="gh-link" data-cmd="openUrl" data-url="${escHtml(r.githubUrl)}" title="Open on GitHub">GH</a>`
         : ''
+      const runBtn = `<button class="run-repo-btn" data-cmd="runRepoAutonomous" data-repo-path="${escHtml(r.repoPath)}" title="Run aahp-runner for this project">Run</button>`
 
       html += `<div class="card repo-card${isFocused ? ' focused' : ''}" data-cmd="focusRepo" data-repo-path="${escHtml(r.repoPath)}">
-        <div class="repo-name"><span class="dot ${dotClass}"></span>${escHtml(r.repoName)}${ghLink}</div>
+        <div class="repo-head">
+          <div class="repo-title"><span class="dot ${dotClass}"></span><span class="repo-name">${escHtml(r.repoName)}</span>${ghLink}</div>
+          ${runBtn}
+        </div>
         <div class="repo-meta">
           <span class="badge phase">${escHtml(phase)}</span>
           <span>${taskLabel}</span>
+          ${runningCount > 0 ? `<span class="badge">${runningCount} active</span>` : ''}
           <span>${escHtml(timeAgo)}</span>
         </div>
       </div>`
     }
 
     html += `</div>`
+    return html
+  }
+
+  private _renderRunnerMetrics(): string {
+    const metrics = readRunnerMetrics(200)
+    const sessions = readRunnerSessions()
+    const isCollapsed = this._collapsedSections.has('runnerMetrics')
+
+    let html = `<div class="section-header${isCollapsed ? ' collapsed' : ''}" data-cmd="toggleSection" data-section="runnerMetrics">
+      <span>Metrics (${metrics.length})</span>
+      <span class="chevron">&#9660;</span>
+    </div>`
+
+    if (isCollapsed) return html
+
+    if (metrics.length === 0 && sessions.length === 0) {
+      html += `<div class="empty-state">No runner telemetry yet</div>`
+      return html
+    }
+
+    const successCount = metrics.filter(m => m.success).length
+    const successRate = metrics.length > 0 ? Math.round((successCount / metrics.length) * 100) : 0
+    const avgDuration = metrics.length > 0
+      ? Math.round(metrics.reduce((sum, m) => sum + (m.durationMs || 0), 0) / metrics.length)
+      : 0
+
+    html += `<div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Live Sessions</div>
+        <div class="metric-value">${sessions.length}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Success Rate</div>
+        <div class="metric-value">${successRate}%</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Runs (sample)</div>
+        <div class="metric-value">${metrics.length}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Avg Duration</div>
+        <div class="metric-value">${escHtml(formatDurationShort(avgDuration))}</div>
+      </div>
+    </div>`
+
+    const byRepo: Record<string, { runs: number; successes: number; totalMs: number }> = {}
+    for (const metric of metrics) {
+      const repo = metric.repo || 'unknown'
+      const bucket = byRepo[repo] ?? { runs: 0, successes: 0, totalMs: 0 }
+      bucket.runs += 1
+      if (metric.success) bucket.successes += 1
+      bucket.totalMs += metric.durationMs || 0
+      byRepo[repo] = bucket
+    }
+
+    const topRows = Object.entries(byRepo)
+      .sort((a, b) => b[1].runs - a[1].runs)
+      .slice(0, 8)
+
+    if (topRows.length > 0) {
+      html += '<table class="metrics-table">'
+      for (const [repo, bucket] of topRows) {
+        const repoRate = bucket.runs > 0 ? Math.round((bucket.successes / bucket.runs) * 100) : 0
+        const avgMs = bucket.runs > 0 ? Math.round(bucket.totalMs / bucket.runs) : 0
+        html += `<tr>
+          <td>${escHtml(repo)}</td>
+          <td>${bucket.runs}</td>
+          <td>${repoRate}%</td>
+          <td>${escHtml(formatDurationShort(avgMs))}</td>
+        </tr>`
+      }
+      html += '</table>'
+    }
+
+    return html
+  }
+
+  private _renderCronOverview(): string {
+    const latestRun = readLatestCronRun()
+    const isCollapsed = this._collapsedSections.has('cron')
+
+    let html = `<div class="section-header${isCollapsed ? ' collapsed' : ''}" data-cmd="toggleSection" data-section="cron">
+      <span>Cron Overview</span>
+      <span class="chevron">&#9660;</span>
+    </div>`
+
+    if (isCollapsed) return html
+
+    if (!latestRun) {
+      html += `<div class="empty-state">No aahp-cron run history found</div>`
+      return html
+    }
+
+    const runDuration = Math.max(0, new Date(latestRun.finishedAt).getTime() - new Date(latestRun.startedAt).getTime())
+    const ok = latestRun.failed === 0
+    const failed = latestRun.results.filter(r => !r.success).slice(0, 5)
+
+    html += `<div class="metric-card">
+      <div class="cron-status">
+        <span class="badge ${ok ? 'phase' : ''}">${ok ? 'OK' : 'FAILED'}</span>
+        <span>${escHtml(formatTimeAgo(latestRun.finishedAt))}</span>
+        <span>${escHtml(formatDurationShort(runDuration))}</span>
+      </div>
+      <div style="margin-bottom:6px">
+        <button class="btn btn-secondary" style="font-size:10px;padding:2px 8px" data-cmd="openLatestCronLog">Open latest cron log</button>
+      </div>
+      <div class="dim">Projects: ${latestRun.totalProjects} | Ran: ${latestRun.ran} | Skipped: ${latestRun.skipped}</div>
+      <div class="dim">Results: ${latestRun.succeeded} succeeded, ${latestRun.failed} failed</div>
+      ${failed.length > 0 ? `<ul class="cron-fail-list">${failed.map(f => `<li>${escHtml(f.projectName)}${f.error ? ` - ${escHtml(f.error)}` : ''}</li>`).join('')}</ul>` : ''}
+    </div>`
+
     return html
   }
 
@@ -1192,4 +1442,77 @@ function formatTimeAgo(isoStr: string): string {
   if (hrs < 24) return `${hrs}h ago`
   const days = Math.floor(hrs / 24)
   return `${days}d ago`
+}
+
+function formatDurationShort(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return '-'
+  if (ms < 1000) return `${ms}ms`
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
+  const mins = Math.floor(ms / 60000)
+  const secs = Math.round((ms % 60000) / 1000)
+  return `${mins}m ${secs}s`
+}
+
+function readRunnerSessions(): RunnerSession[] {
+  try {
+    if (!fs.existsSync(RUNNER_SESSIONS_FILE)) return []
+    const raw = JSON.parse(fs.readFileSync(RUNNER_SESSIONS_FILE, 'utf8')) as { sessions?: unknown[] }
+    return Array.isArray(raw.sessions) ? raw.sessions as RunnerSession[] : []
+  } catch {
+    return []
+  }
+}
+
+function readRunnerMetrics(limit = 200): RunnerMetric[] {
+  try {
+    if (!fs.existsSync(RUNNER_METRICS_FILE)) return []
+    const lines = fs.readFileSync(RUNNER_METRICS_FILE, 'utf8').split('\n').filter(Boolean)
+    const parsed: RunnerMetric[] = []
+    for (const line of lines) {
+      try {
+        parsed.push(JSON.parse(line) as RunnerMetric)
+      } catch {
+      }
+    }
+    return limit > 0 ? parsed.slice(-limit) : parsed
+  } catch {
+    return []
+  }
+}
+
+function readLatestCronRun(): CronPipelineRun | undefined {
+  try {
+    if (!fs.existsSync(CRON_HISTORY_FILE)) return undefined
+    const raw = JSON.parse(fs.readFileSync(CRON_HISTORY_FILE, 'utf8')) as unknown
+    if (!Array.isArray(raw) || raw.length === 0) return undefined
+    return raw[0] as CronPipelineRun
+  } catch {
+    return undefined
+  }
+}
+
+function getLatestCronLogPath(): string | undefined {
+  const logDir = path.join(AAHP_HOME, 'cron-logs')
+
+  const latestRun = readLatestCronRun()
+  if (latestRun?.startedAt) {
+    const stamp = latestRun.startedAt.slice(0, 16).replace('T', '_').replace(':', '-')
+    const byHistory = path.join(logDir, `run-${stamp}.log`)
+    if (fs.existsSync(byHistory)) return byHistory
+  }
+
+  try {
+    if (!fs.existsSync(logDir)) return undefined
+    const files = fs.readdirSync(logDir)
+      .filter(name => /^run-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}\.log$/.test(name))
+      .map(name => {
+        const filePath = path.join(logDir, name)
+        const mtime = fs.statSync(filePath).mtimeMs
+        return { filePath, mtime }
+      })
+      .sort((a, b) => b.mtime - a.mtime)
+    return files[0]?.filePath
+  } catch {
+    return undefined
+  }
 }

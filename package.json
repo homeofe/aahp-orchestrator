@@ -110,6 +110,10 @@
         "title": "AAHP: Run Agent for Current Repo"
       },
       {
+        "command": "aahp.runRepoAutonomous",
+        "title": "AAHP: Run Repo Autonomously"
+      },
+      {
         "command": "aahp.focusRepo",
         "title": "AAHP: Focus Repo in Dashboard"
       },

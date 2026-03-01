@@ -10,7 +10,7 @@ import {
   parseNextActions,
   scanAllRepoOverviews,
 } from './aahp-reader'
-import { scanAllRepos, spawnAllAgents, retryFailedAgent, getDevRoot, AgentRun, buildAgentPrompt, cancelAgent } from './agent-spawner'
+import { scanAllRepos, spawnAllAgents, getDevRoot, AgentRun, buildAgentPrompt, cancelAgent } from './agent-spawner'
 import { SessionMonitor } from './session-monitor'
 import { AahpDashboardProvider } from './sidebar'
 import { FlatTask, TaskTreeProvider, flattenOpenTasks } from './task-tree'
@@ -19,6 +19,16 @@ const PHASES = ['research', 'architecture', 'implementation', 'review', 'fix', '
 
 /** Current agent runs reference for cancellation (updated by onAgentRuns callback) */
 let currentAgentRuns: AgentRun[] = []
+
+function quoteCliArg(value: string): string {
+  return `"${value.replace(/"/g, '\\"')}"`
+}
+
+function launchRunner(cwd: string, args: string[], terminalName: string): void {
+  const terminal = vscode.window.createTerminal({ name: terminalName, cwd })
+  terminal.sendText(`npx aahp-runner run ${args.join(' ')}`)
+  terminal.show()
+}
 
 export function registerCommands(
   context: vscode.ExtensionContext,
@@ -150,17 +160,13 @@ export function registerCommands(
 
       if (confirm !== 'Run All Agents') return
 
-      const limitMsg = limit > 0 ? ` (${limit} at a time)` : ''
-      vscode.window.showInformationMessage(`🤖 AAHP: Spawning ${repos.length} agents${limitMsg} — check Output channels per repo`)
+      const args = ['--all', '--yes', '--root', quoteCliArg(devRoot)]
+      if (limit > 0) {
+        args.push('--limit', String(limit))
+      }
 
-      spawnAllAgents(repos, wrappedOnAgentRuns, monitor, limit, logStore).then(finalRuns => {
-        const done = finalRuns.filter(r => r.committed).length
-        const failed = finalRuns.filter(r => r.status === 'failed').length
-        vscode.window.showInformationMessage(
-          `🤖 AAHP Agents done: ${done} committed, ${failed} failed, ${finalRuns.length - done - failed} partial`
-        )
-        reloadCtx()
-      })
+      vscode.window.showInformationMessage(`🤖 AAHP: Launching aahp-runner for ${repos.length} tasks...`)
+      launchRunner(devRoot, args, 'AAHP Runner (All)')
     }),
 
     // ── Focus Repo in Dashboard ────────────────────────────────────────────────
@@ -191,19 +197,41 @@ export function registerCommands(
       )
       if (confirm !== 'Run Agent') return
 
-      vscode.window.showInformationMessage(`AAHP: Spawning agent for ${repo.repoName}...`)
+      vscode.window.showInformationMessage(`AAHP: Launching aahp-runner for ${repo.repoName} [${repo.taskId}]...`)
+      launchRunner(repoPath, [
+        '--repo-path', quoteCliArg(repoPath),
+        '--task-id', quoteCliArg(repo.taskId),
+        '--yes',
+      ], `AAHP Runner (${repo.repoName})`)
+    }),
 
-      spawnAllAgents([repo], wrappedOnAgentRuns, monitor, 1, logStore).then(finalRuns => {
-        const r = finalRuns[0]
-        if (r) {
-          vscode.window.showInformationMessage(
-            r.committed
-              ? `AAHP: ${repo.repoName} [${repo.taskId}] committed.`
-              : `AAHP: ${repo.repoName} agent finished - review output.`
-          )
-        }
-        reloadCtx()
-      })
+    vscode.commands.registerCommand('aahp.runRepoAutonomous', async (repoPath: string) => {
+      if (!repoPath) {
+        vscode.window.showWarningMessage('AAHP: No repo selected.')
+        return
+      }
+
+      const repoName = path.basename(repoPath)
+      const manifestPath = path.join(repoPath, '.ai', 'handoff', 'MANIFEST.json')
+      if (!fs.existsSync(manifestPath)) {
+        vscode.window.showWarningMessage(`AAHP: No MANIFEST.json found in ${repoName}.`)
+        return
+      }
+
+      const confirm = await vscode.window.showInformationMessage(
+        `AAHP: Run aahp-runner autonomously for ${repoName} (drain all runnable tasks)?`,
+        { modal: true },
+        'Run Project'
+      )
+      if (confirm !== 'Run Project') return
+
+      launchRunner(repoPath, [
+        '--repo-path', quoteCliArg(repoPath),
+        '--all',
+        '--yes',
+      ], `AAHP Runner (${repoName} auto)`)
+
+      vscode.window.showInformationMessage(`AAHP: Autonomous run started for ${repoName}.`)
     }),
 
     // ── Set Task Status ────────────────────────────────────────────────────────
@@ -239,67 +267,30 @@ export function registerCommands(
         return
       }
 
-      const devRoot = getDevRoot()
-      if (!devRoot) {
-        vscode.window.showWarningMessage('AAHP: No root path configured.')
+      const manifestPath = path.join(repoPath, '.ai', 'handoff', 'MANIFEST.json')
+      if (!fs.existsSync(manifestPath)) {
+        vscode.window.showWarningMessage('AAHP: No manifest found for retry.')
         return
       }
 
-      const repos = scanAllRepos(devRoot).filter(r => r.repoPath === repoPath)
-      const repo = repos.find(r => r.taskId === taskId)
-        ?? repos[0]
+      try {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+        const task = manifest.tasks?.[taskId]
+        if (!task) {
+          vscode.window.showWarningMessage(`AAHP: Task ${taskId} not found in manifest.`)
+          return
+        }
 
-      if (!repo) {
-        // Build a minimal RepoTask from the manifest if scanAllRepos does not return it
-        const manifestPath = path.join(repoPath, '.ai', 'handoff', 'MANIFEST.json')
-        if (!fs.existsSync(manifestPath)) {
-          vscode.window.showWarningMessage('AAHP: No manifest found for retry.')
-          return
-        }
-        try {
-          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
-          const task = manifest.tasks?.[taskId]
-          if (!task) {
-            vscode.window.showWarningMessage(`AAHP: Task ${taskId} not found in manifest.`)
-            return
-          }
-          const fallbackRepo = {
-            repoPath,
-            repoName: path.basename(repoPath),
-            manifestPath,
-            taskId,
-            taskTitle: task.title,
-            taskPriority: task.priority ?? 'medium',
-            phase: manifest.last_session?.phase ?? 'unknown',
-            quickContext: manifest.quick_context ?? '',
-          }
-          vscode.window.showInformationMessage(`AAHP: Retrying [${taskId}] for ${fallbackRepo.repoName}...`)
-          retryFailedAgent(fallbackRepo, wrappedOnAgentRuns, monitor, logStore).then(finalRuns => {
-            const r = finalRuns[0]
-            if (r?.committed) {
-              vscode.window.showInformationMessage(`AAHP: Retry succeeded - [${taskId}] committed.`)
-            } else {
-              vscode.window.showInformationMessage(`AAHP: Retry finished - review output.`)
-            }
-            reloadCtx()
-          })
-          return
-        } catch (err) {
-          vscode.window.showWarningMessage(`AAHP: Failed to read manifest for retry - ${String(err)}`)
-          return
-        }
+        const repoName = path.basename(repoPath)
+        vscode.window.showInformationMessage(`AAHP: Retrying [${taskId}] for ${repoName} via aahp-runner...`)
+        launchRunner(repoPath, [
+          '--repo-path', quoteCliArg(repoPath),
+          '--task-id', quoteCliArg(taskId),
+          '--yes',
+        ], `AAHP Runner Retry (${repoName} ${taskId})`)
+      } catch (err) {
+        vscode.window.showWarningMessage(`AAHP: Failed to read manifest for retry - ${String(err)}`)
       }
-
-      vscode.window.showInformationMessage(`AAHP: Retrying [${repo.taskId}] for ${repo.repoName}...`)
-      retryFailedAgent(repo, wrappedOnAgentRuns, monitor, logStore).then(finalRuns => {
-        const r = finalRuns[0]
-        if (r?.committed) {
-          vscode.window.showInformationMessage(`AAHP: Retry succeeded - [${repo.taskId}] committed.`)
-        } else {
-          vscode.window.showInformationMessage(`AAHP: Retry finished - review output.`)
-        }
-        reloadCtx()
-      })
     }),
 
     // ── Fix Task (spawn agent for a specific task) ───────────────────────────
@@ -366,17 +357,12 @@ export function registerCommands(
         }
         if (confirm !== 'Run Agent') return
 
-        vscode.window.showInformationMessage(`AAHP: Spawning agent for ${repoName} [${taskId}]...`)
-
-        spawnAllAgents([repo], wrappedOnAgentRuns, monitor, 1, logStore).then(finalRuns => {
-          const r = finalRuns[0]
-          if (r?.committed) {
-            vscode.window.showInformationMessage(`AAHP: ${repoName} [${taskId}] committed.`)
-          } else {
-            vscode.window.showInformationMessage(`AAHP: ${repoName} [${taskId}] agent finished - review output.`)
-          }
-          reloadCtx()
-        })
+        vscode.window.showInformationMessage(`AAHP: Launching aahp-runner for ${repoName} [${taskId}]...`)
+        launchRunner(repoPath, [
+          '--repo-path', quoteCliArg(repoPath),
+          '--task-id', quoteCliArg(taskId),
+          '--yes',
+        ], `AAHP Runner (${repoName} ${taskId})`)
       } catch (err) {
         vscode.window.showWarningMessage(`AAHP: Failed to read manifest - ${String(err)}`)
       }
@@ -485,29 +471,12 @@ export function registerCommands(
           }
         }
 
-        const repo = {
-          repoPath,
-          repoName,
-          manifestPath,
-          taskId,
-          taskTitle: task.title,
-          taskPriority: task.priority ?? 'medium',
-          phase: manifest.last_session?.phase ?? 'unknown',
-          quickContext: manifest.quick_context ?? '',
-          ...(taskDetail ? { taskDetail } : {}),
-        }
-
-        vscode.window.showInformationMessage(`AAHP: Spawning agent for ${repoName} [${taskId}]...`)
-
-        spawnAllAgents([repo], wrappedOnAgentRuns, monitor, 1, logStore).then(finalRuns => {
-          const r = finalRuns[0]
-          if (r?.committed) {
-            vscode.window.showInformationMessage(`AAHP: ${repoName} [${taskId}] committed.`)
-          } else {
-            vscode.window.showInformationMessage(`AAHP: ${repoName} [${taskId}] agent finished - review output.`)
-          }
-          reloadCtx()
-        })
+        vscode.window.showInformationMessage(`AAHP: Launching aahp-runner for ${repoName} [${taskId}]...`)
+        launchRunner(repoPath, [
+          '--repo-path', quoteCliArg(repoPath),
+          '--task-id', quoteCliArg(taskId),
+          '--yes',
+        ], `AAHP Runner (${repoName} ${taskId})`)
       } catch (err) {
         vscode.window.showWarningMessage(`AAHP: Failed to launch task - ${String(err)}`)
       }
@@ -537,12 +506,6 @@ export function registerCommands(
 
       const issueUrl = `${ghUrl}/issues?q=${encodeURIComponent(element.taskId)}`
       vscode.env.openExternal(vscode.Uri.parse(issueUrl))
-    }),
-
-    // ── Refresh All (re-scan repos and NEXT_ACTIONS.md) ───────────────────────
-    vscode.commands.registerCommand('aahp.refreshAll', () => {
-      reloadCtx()
-      vscode.window.showInformationMessage('AAHP: Dashboard refreshed')
     }),
 
     // ── Set Task Status from Tree View (context menu) ────────────────────────

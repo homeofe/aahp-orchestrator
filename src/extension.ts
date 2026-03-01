@@ -107,6 +107,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // the race condition where resolveWebviewView fires before the callback exists
   dashboardProvider.setRefreshCallback(refreshAll)
 
+  // ── Core command: Refresh Dashboard (must always exist) ───────────────────
+  // Register this early so Command Palette and UI refresh work even if a later
+  // command registration fails due extension conflicts.
+  context.subscriptions.push(
+    vscode.commands.registerCommand('aahp.refreshAll', () => {
+      refreshAll()
+      vscode.window.showInformationMessage('AAHP: Dashboard refreshed')
+    })
+  )
+
   // ── Batch mode: suppress debounced re-renders during activation ─────────────
   // Without this, every update() / updateRepoOverviews() / etc. triggers a
   // debounced HTML rebuild (new CSP nonce = full webview reload). During
@@ -166,13 +176,29 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   dashboardProvider.updateLogHistory(logStore.getHistory(5))
 
   // ── Commands ────────────────────────────────────────────────────────────────
-  for (const d of registerCommands(context, getCtx, refreshAll, (runs: AgentRun[]) => {
-    dashboardProvider.updateAgentRuns(runs)
-    updateAgentStatusBar(agentStatusBar, runs)
-    // Refresh log history when runs change (captures newly finished agents)
-    dashboardProvider.updateLogHistory(logStore.getHistory(5))
-  }, monitor, dashboardProvider, taskTreeProvider, logStore)) {
-    context.subscriptions.push(d)
+  try {
+    for (const d of registerCommands(context, getCtx, refreshAll, (runs: AgentRun[]) => {
+      dashboardProvider.updateAgentRuns(runs)
+      updateAgentStatusBar(agentStatusBar, runs)
+      // Refresh log history when runs change (captures newly finished agents)
+      dashboardProvider.updateLogHistory(logStore.getHistory(5))
+    }, monitor, dashboardProvider, taskTreeProvider, logStore)) {
+      context.subscriptions.push(d)
+    }
+  } catch (error) {
+    console.error('AAHP: Command registration failed', error)
+    vscode.window.showErrorMessage('AAHP: Failed to register one or more commands. Check for conflicting extensions.')
+
+    // Ensure refresh command remains available as an emergency fallback.
+    try {
+      const fallbackRefresh = vscode.commands.registerCommand('aahp.refreshAll', () => {
+        refreshAll()
+        vscode.window.showInformationMessage('AAHP: Dashboard refreshed')
+      })
+      context.subscriptions.push(fallbackRefresh)
+    } catch {
+      // ignore - if already registered by another extension, fallback is unnecessary
+    }
   }
 
   // ── End batch mode: all async init complete, trigger ONE clean render ───────
