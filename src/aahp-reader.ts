@@ -83,7 +83,7 @@ function fetchAndSyncGitHubIssues(
       `gh issue list --repo ${repo} --state all --json number,title,body,labels,state,stateReason --limit 100`,
       { cwd: repoPath, stdio: ['pipe', 'pipe', 'pipe'], timeout: 15000 }
     ).toString()
-    issues = JSON.parse(output) as GitHubIssue[]
+    issues = (JSON.parse(output) as GitHubIssue[]).map(i => ({ ...i, state: i.state.toLowerCase() as 'open' | 'closed' }))
   } catch { return manifest }
 
   if (!issues.length) return manifest
