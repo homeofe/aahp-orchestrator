@@ -472,6 +472,34 @@ describe('scanAllRepoOverviews', () => {
     expect(results.map(r => r.repoName)).toEqual(['m-repo', 'z-repo', 'a-repo'])
   })
 
+  it('uses MANIFEST status for NEXT_ACTIONS items with known task IDs', () => {
+    const repoName = 'repo-next-actions'
+    createRepo(repoName, makeManifest({
+      project: repoName,
+      tasks: {
+        'T-006': makeTask({ title: 'Publish npm package', status: 'done' }),
+      },
+    }))
+
+    const handoff = path.join(tmpDir, repoName, '.ai', 'handoff')
+    fs.writeFileSync(
+      path.join(handoff, 'NEXT_ACTIONS.md'),
+      [
+        '# Next Actions',
+        '',
+        '## Ready - Work These Next',
+        '### T-006: Publish npm package',
+      ].join('\n'),
+      'utf8'
+    )
+
+    const results = scanAllRepoOverviews(tmpDir)
+    expect(results).toHaveLength(1)
+    expect(results[0]!.nextActions).toHaveLength(1)
+    expect(results[0]!.nextActions[0]!.taskId).toBe('T-006')
+    expect(results[0]!.nextActions[0]!.section).toBe('done')
+  })
+
   it('skips directories without manifest', () => {
     createRepo('has-manifest', makeManifest({ project: 'has-manifest' }))
     fs.mkdirSync(path.join(tmpDir, 'no-manifest'))

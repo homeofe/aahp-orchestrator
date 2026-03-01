@@ -218,10 +218,10 @@ function getGithubUrl(repoPath: string): string | undefined {
 }
 
 /** Cross-reference parsed NEXT_ACTIONS items with MANIFEST.json task statuses.
- *  Items with section 'unknown' get their section inferred from the manifest task status. */
+ *  For items with a known task ID, MANIFEST status is the source of truth.
+ *  This prevents stale NEXT_ACTIONS headings from showing done tasks as ready. */
 function inferSectionsFromManifest(items: NextActionItem[], tasks: Record<string, AahpTask>): NextActionItem[] {
   return items.map(item => {
-    if (item.section !== 'unknown') return item
     if (item.taskId && tasks[item.taskId]) {
       const manifestStatus = tasks[item.taskId]!.status
       const sectionMap: Record<string, NextActionItem['section']> = {
@@ -230,6 +230,7 @@ function inferSectionsFromManifest(items: NextActionItem[], tasks: Record<string
       }
       return { ...item, section: sectionMap[manifestStatus] ?? 'ready' }
     }
+    if (item.section !== 'unknown') return item
     // No task ID or task not in manifest - default to ready
     return { ...item, section: 'ready' }
   })
