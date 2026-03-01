@@ -10,8 +10,8 @@
 
 | Status | Count | Tasks |
 |--------|-------|-------|
-| Done | 14 | T-001, T-002, T-004, T-005, T-006, T-007, T-008, T-009, T-010, T-011, T-012, T-013, T-014 |
-| Ready | 2 | T-016, T-015 |
+| Done | 15 | T-001, T-002, T-004, T-005, T-006, T-007, T-008, T-009, T-010, T-011, T-012, T-013, T-014, T-015 |
+| Ready | 1 | T-016 |
 | Blocked | 0 | - |
 | Pending | 1 | T-003 |
 
@@ -34,21 +34,6 @@
 
 ---
 
-### T-015: Add GitHub links to All Open Tasks tree view
-- **Priority:** medium
-- **GitHub:** [homeofe/aahp-orchestrator#2](https://github.com/homeofe/aahp-orchestrator/issues/2)
-- **Goal:** Add inline action buttons to each task in the "All Open Tasks" tree view that open the corresponding GitHub Issues page.
-- **Context:** The Dashboard webview has GitHub links (GH badges) next to repos and tasks. The All Open Tasks tree view has no GitHub links. Users need quick access to GitHub from every task.
-- **What to do:**
-  1. In `src/task-tree.ts`, add a `contextValue` to `FlatTask` tree items to enable inline actions
-  2. In `package.json`, add a view/item/context menu contribution for `aahp.openTaskOnGitHub` command scoped to the tree view
-  3. The command `aahp.openTaskOnGitHub` already exists in `src/commands.ts` - wire it to the tree view inline actions
-  4. Add unit tests for the new tree item context values
-- **Files:** `src/task-tree.ts`, `package.json`, `src/__tests__/task-tree.test.ts`
-- **Definition of done:** Each task in the All Open Tasks tree view shows a GitHub icon button. Clicking it opens the GitHub issue page. Unit tests verify context values are set.
-
----
-
 ## Blocked
 
 *(No blocked tasks)*
@@ -59,11 +44,11 @@
 
 | Task | What Was Done | When |
 |------|--------------|------|
+| T-015: Add GitHub links to All Open Tasks tree view | Inline GitHub icon button (`$(github)`) on each task in the All Open Tasks tree view. Opens direct issue URL when `github_issue` is linked, falls back to GitHub Issues search. Enhanced tooltip shows GitHub issue number. 7 new tests in commands-github.test.ts, 2 tooltip tests in task-tree.test.ts. Also added `env.openExternal` to vscode mock. Total: 248 tests (14 suites). | 2026-03-01 |
 | T-014: Bug: Dashboard first render incomplete + intermittent missing aahp.refreshAll command | Fixed two root causes: (1) refreshAll() now wraps all dashboard updates in nested batch mode (depth-counted beginBatchUpdate/endBatchUpdate) for atomic rendering - prevents partial UI on first render. (2) Wrapped unguarded await calls in activate() with try-catch so session cleanup failures never crash activation. Added 3 tests for batch nesting. Total: 239 tests. | 2026-03-01 |
 | T-013: Test chat-participant and context-injector | Verified: T-009 already added 45 chat-participant tests and 13 context-injector tests (58 total, requirement was 20). All 234 unit tests pass. Closed as duplicate/verified. | 2026-02-28 |
 | T-012: Integration tests with VS Code extension host | Expanded integration tests from 10 to 26 across 5 suites (configuration, package metadata, command execution, dashboard webview). All 26 pass in real VS Code extension host. | 2026-02-28 |
 | T-011: Dashboard task filtering and sorting | New "All Tasks" section in dashboard webview with filter controls (status, priority, repo) and sorting (priority then age). Pure functions in src/task-filter.ts with 31 new tests. Total: 234 unit tests (12 suites). | 2026-02-28 |
-| T-010: Integration tests with VS Code extension host | @vscode/test-electron infrastructure: runTest.ts launcher, Mocha test runner, 10 integration tests (activation, command registration, dashboard, keybindings, chat participant, views). CI updated with xvfb integration test step. | 2026-02-28 |
 
 ---
 

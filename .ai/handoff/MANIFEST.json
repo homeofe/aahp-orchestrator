@@ -3,11 +3,11 @@
   "project": "aahp-orchestrator",
   "last_session": {
     "agent": "claude-code",
-    "session_id": "t014-fix-dashboard-first-render-2026-03-01",
-    "timestamp": "2026-03-01T13:18:23.079Z",
-    "commit": "fa155df",
+    "session_id": "t015-github-links-tree-view-2026-03-01",
+    "timestamp": "2026-03-01T14:40:00.000Z",
+    "commit": "30cc3ca",
     "phase": "implementation",
-    "duration_minutes": 2
+    "duration_minutes": 10
   },
   "files": {
     "STATUS.md": {
@@ -53,7 +53,7 @@
       "summary": "5-phase AAHP pipeline. VS Code extension specific: webview CSP, try/catch, vsce package notes."
     }
   },
-  "quick_context": "aahp-orchestrator v0.3.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Marketplace-ready with icon, metadata, and publish script. 239 unit tests (13 suites) + 26 integration tests (@vscode/test-electron, 5 suites), CI pipeline with xvfb integration tests, tag-triggered release workflow. Dashboard has aggregated task filtering (status/priority/repo) and sorting with nested batch rendering for atomic updates. All modules tested including chat-participant (45 tests) and context-injector (13 tests). To publish: set VSCE_PAT and run npm run publish or push a v* tag.",
+  "quick_context": "aahp-orchestrator v0.3.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Marketplace-ready with icon, metadata, and publish script. 248 unit tests (14 suites) + 26 integration tests (@vscode/test-electron, 5 suites), CI pipeline with xvfb integration tests, tag-triggered release workflow. Dashboard has aggregated task filtering (status/priority/repo) and sorting with nested batch rendering for atomic updates. All Open Tasks tree view has inline GitHub link buttons and enhanced tooltips with issue numbers. GitHub issue sync auto-imports issues into MANIFEST. To publish: set VSCE_PAT and run npm run publish or push a v* tag.",
   "token_budget": {
     "manifest_only": 80,
     "manifest_plus_core": 1200,
@@ -201,11 +201,12 @@
     },
     "T-015": {
       "title": "Add GitHub links to All Open Tasks tree view",
-      "status": "ready",
+      "status": "done",
       "priority": "medium",
       "depends_on": [],
       "created": "2026-03-01T12:58:44.331Z",
-      "notes": "## Problem\n\nThe **Dashboard** webview has GitHub links (GH badges) next to repos and tasks, making it easy to jump to GitHub Issues. However, the **All Open Tasks** tree view in the sidebar has no GitHub links at all.\n\nUsers need quick access to GitHub from every task - not just from the dashboard panel.\n\n## Expected Behavior\n\nEach task item in the \"All Open Tasks\" tree view should have an inline action button (icon) that opens the corresponding GitHub Issues search for that task ID. This should",
+      "completed": "2026-03-01T14:40:00.000Z",
+      "notes": "Inline GitHub icon button on each task in the All Open Tasks tree view. Opens direct issue URL (when github_issue is linked) or falls back to GitHub Issues search. Enhanced tooltip shows GitHub issue number. 7 new tests in commands-github.test.ts, 2 tooltip tests in task-tree.test.ts.",
       "github_issue": 2,
       "github_repo": "homeofe/aahp-orchestrator"
     },
