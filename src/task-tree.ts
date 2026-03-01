@@ -91,7 +91,10 @@ export class TaskTreeProvider implements vscode.TreeDataProvider<TreeElement> {
     const label = `${ft.repoName} > [${ft.taskId}] ${ft.task.title}`
     const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None)
     item.description = ft.task.status
-    item.tooltip = `${ft.repoName} - ${ft.taskId}: ${ft.task.title}\nPriority: ${ft.task.priority} | Status: ${ft.task.status}`
+    const ghLine = typeof ft.task.github_issue === 'number'
+      ? `\nGitHub: #${ft.task.github_issue}`
+      : ''
+    item.tooltip = `${ft.repoName} - ${ft.taskId}: ${ft.task.title}\nPriority: ${ft.task.priority} | Status: ${ft.task.status}${ghLine}`
     item.iconPath = statusIcon(ft.task.status)
     item.contextValue = 'task'
     item.command = {

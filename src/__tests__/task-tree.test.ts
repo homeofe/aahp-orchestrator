@@ -204,6 +204,30 @@ describe('TaskTreeProvider', () => {
     })
   })
 
+  it('includes GitHub issue number in tooltip when available', () => {
+    provider.update([
+      makeOverview('my-repo', {
+        'T-005': { title: 'Linked task', status: 'ready', priority: 'high', depends_on: [], created: '2026-02-27T10:00:00Z', github_issue: 42, github_repo: 'homeofe/my-repo' },
+      }),
+    ])
+    const roots = provider.getChildren()
+    const children = provider.getChildren(roots[0])
+    const item = provider.getTreeItem(children[0])
+    expect(item.tooltip).toContain('GitHub: #42')
+  })
+
+  it('omits GitHub line from tooltip when no issue linked', () => {
+    provider.update([
+      makeOverview('my-repo', {
+        'T-005': { title: 'No issue', status: 'ready', priority: 'high', depends_on: [], created: '2026-02-27T10:00:00Z' },
+      }),
+    ])
+    const roots = provider.getChildren()
+    const children = provider.getChildren(roots[0])
+    const item = provider.getTreeItem(children[0])
+    expect(item.tooltip).not.toContain('GitHub')
+  })
+
   it('returns empty children for a task element (leaf node)', () => {
     provider.update([
       makeOverview('repo-a', {

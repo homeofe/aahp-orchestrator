@@ -92,6 +92,7 @@ export const env = {
     writeText: vi.fn(),
     readText: vi.fn(),
   },
+  openExternal: vi.fn(),
 }
 
 // ── Chat mock ───────────────────────────────────────────────────────────────

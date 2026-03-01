@@ -1,9 +1,214 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
+import * as os from 'os'
 import * as crypto from 'crypto'
+import { execSync, spawnSync } from 'child_process'
 
-// ── AAHP v3 types ────────────────────────────────────────────────────────────
+// ── GitHub issue sync ─────────────────────────────────────────────────────────
+
+interface GitHubIssue {
+  number: number
+  title: string
+  body: string
+  labels: Array<{ name: string }>
+  state: 'open' | 'closed'
+  stateReason?: 'completed' | 'not_planned' | 'reopened' | null
+}
+
+function detectGitHubRepo(repoPath: string): string | null {
+  try {
+    const url = execSync('git remote get-url origin', { cwd: repoPath, stdio: ['pipe', 'pipe', 'pipe'] })
+      .toString().trim()
+    const match = url.match(/github\.com[/:]([^/]+\/[^/]+?)(?:\.git)?$/)
+    return match ? (match[1] ?? null) : null
+  } catch { return null }
+}
+
+function labelsToPriority(labels: Array<{ name: string }>): AahpTask['priority'] {
+  const names = labels.map(l => l.name.toLowerCase())
+  if (names.some(n => n.includes('bug') || n.includes('critical') || n.includes('urgent'))) return 'high'
+  if (names.some(n => n.includes('enhancement') || n.includes('feature') || n.includes('medium'))) return 'medium'
+  return 'low'
+}
+
+function githubStateToAahpStatus(state: string, labels: Array<{ name: string }>): AahpTask['status'] {
+  if (state === 'closed') return 'done'
+  const names = labels.map(l => l.name.toLowerCase())
+  if (names.some(n => n.includes('in progress') || n.includes('in-progress') || n.includes('wip'))) return 'in_progress'
+  if (names.some(n => n.includes('blocked') || n.includes('on hold') || n.includes('on-hold'))) return 'blocked'
+  return 'ready'
+}
+
+function extractTaskIdFromTitle(title: string): string | undefined {
+  return title.match(/\b(T-\d{3,})\b/i)?.[1]?.toUpperCase()
+}
+
+/** Fetch GitHub issues (all states) and sync them into the manifest.
+ *  Writes MANIFEST.json if anything changed. Returns updated manifest. */
+function fetchAndSyncGitHubIssues(
+  repoPath: string,
+  handoffDir: string,
+  manifest: AahpManifest
+): AahpManifest {
+  const repo = detectGitHubRepo(repoPath)
+  if (!repo) return manifest
+
+  let issues: GitHubIssue[]
+  try {
+    const output = execSync(
+      `gh issue list --repo ${repo} --state all --json number,title,body,labels,state,stateReason --limit 100`,
+      { cwd: repoPath, stdio: ['pipe', 'pipe', 'pipe'], timeout: 15000 }
+    ).toString()
+    issues = JSON.parse(output) as GitHubIssue[]
+  } catch { return manifest }
+
+  if (!issues.length) return manifest
+
+  const tasks = manifest.tasks ?? {}
+  let nextId = manifest.next_task_id ?? (Object.keys(tasks).length + 1)
+  let changed = false
+
+  const importedNums = new Set(
+    Object.values(tasks).map(t => t.github_issue).filter((n): n is number => n !== undefined)
+  )
+
+  for (const issue of issues) {
+    if (importedNums.has(issue.number)) continue
+    const githubStatus = githubStateToAahpStatus(issue.state, issue.labels)
+    const existingId = extractTaskIdFromTitle(issue.title)
+
+    if (existingId && tasks[existingId]) {
+      const task = tasks[existingId]!
+      let taskChanged = false
+      if (task.github_issue !== issue.number || task.github_repo !== repo) {
+        task.github_issue = issue.number
+        task.github_repo = repo
+        taskChanged = true
+      }
+      const shouldSync = githubStatus === 'done' || task.status !== 'in_progress'
+      if (shouldSync && task.status !== githubStatus) {
+        task.status = githubStatus
+        taskChanged = true
+      }
+      if (taskChanged) changed = true
+      importedNums.add(issue.number)
+      continue
+    }
+
+    if (issue.state === 'closed') continue
+
+    const taskId = `T-${String(nextId).padStart(3, '0')}`
+    tasks[taskId] = {
+      title: issue.title,
+      status: githubStatus,
+      priority: labelsToPriority(issue.labels),
+      depends_on: [],
+      created: new Date().toISOString(),
+      ...(issue.body ? { notes: issue.body.slice(0, 500) } : {}),
+      github_issue: issue.number,
+      github_repo: repo,
+    }
+    nextId++
+    changed = true
+  }
+
+  if (!changed) return manifest
+
+  const updated: AahpManifest = { ...manifest, tasks, next_task_id: nextId }
+  fs.writeFileSync(path.join(handoffDir, 'MANIFEST.json'), JSON.stringify(updated, null, 2) + '\n', 'utf8')
+  return updated
+}
+
+const PRIORITY_LABELS: Record<string, { name: string; color: string }> = {
+  high:   { name: 'priority: high',   color: 'd93f0b' },
+  medium: { name: 'priority: medium', color: 'fbca04' },
+  low:    { name: 'priority: low',    color: '0075ca' },
+}
+const STATUS_LABELS: Record<string, { name: string; color: string }> = {
+  blocked:     { name: 'blocked',     color: 'e4e669' },
+  in_progress: { name: 'in progress', color: '0052cc' },
+}
+
+function ensureLabel(repo: string, name: string, color: string, cwd: string): void {
+  try {
+    execSync(`gh label create "${name}" --color "${color}" --force --repo ${repo}`,
+      { cwd, stdio: ['pipe', 'pipe', 'pipe'], timeout: 10000 })
+  } catch { /* best-effort */ }
+}
+
+/** Create GitHub issues for manifest tasks that are missing one, then link back. */
+function createMissingGitHubIssues(
+  repoPath: string,
+  handoffDir: string,
+  manifest: AahpManifest
+): AahpManifest {
+  const repo = detectGitHubRepo(repoPath)
+  if (!repo) return manifest
+
+  const tasks = manifest.tasks ?? {}
+  const toCreate = Object.entries(tasks).filter(
+    ([, t]) => t.github_issue === undefined &&
+      (t.status === 'ready' || t.status === 'in_progress' || t.status === 'blocked')
+  ) as Array<[string, AahpTask]>
+
+  if (toCreate.length === 0) return manifest
+
+  const labelsNeeded = new Set(toCreate.flatMap(([, t]) => [t.priority, t.status]))
+  for (const key of labelsNeeded) {
+    const lbl = PRIORITY_LABELS[key] ?? STATUS_LABELS[key]
+    if (lbl) ensureLabel(repo, lbl.name, lbl.color, repoPath)
+  }
+
+  let changed = false
+  for (const [taskId, task] of toCreate) {
+    const title = `[${taskId}] ${task.title}`
+    const labelArgs = [
+      ...(PRIORITY_LABELS[task.priority] ? ['--label', PRIORITY_LABELS[task.priority]!.name] : []),
+      ...(STATUS_LABELS[task.status]     ? ['--label', STATUS_LABELS[task.status]!.name]     : []),
+    ]
+    const body = [
+      `**AAHP Task:** \`${taskId}\`  `,
+      `**Status:** ${task.status}  `,
+      `**Priority:** ${task.priority}  `,
+      task.depends_on?.length ? `**Depends on:** ${task.depends_on.join(', ')}  ` : '',
+      '',
+      task.notes ?? '',
+      '',
+      `---`,
+      `*Auto-created from AAHP manifest · project: ${manifest.project}*`,
+    ].filter(l => l !== undefined).join('\n').trim()
+
+    const tmpFile = path.join(os.tmpdir(), `aahp-issue-${taskId}-${Date.now()}.md`)
+    try {
+      fs.writeFileSync(tmpFile, body, 'utf8')
+      const result = spawnSync('gh', [
+        'issue', 'create',
+        '--repo', repo,
+        '--title', title,
+        '--body-file', tmpFile,
+        ...labelArgs,
+      ], { cwd: repoPath, timeout: 15000, encoding: 'utf8' })
+
+      if (result.status === 0 && result.stdout) {
+        const numMatch = result.stdout.trim().match(/\/issues\/(\d+)$/)
+        if (numMatch?.[1]) {
+          task.github_issue = parseInt(numMatch[1], 10)
+          task.github_repo = repo
+          changed = true
+        }
+      }
+    } catch { /* best-effort */ } finally {
+      try { fs.unlinkSync(tmpFile) } catch { /* ignore */ }
+    }
+  }
+
+  if (!changed) return manifest
+  const updated: AahpManifest = { ...manifest, tasks }
+  fs.writeFileSync(path.join(handoffDir, 'MANIFEST.json'), JSON.stringify(updated, null, 2) + '\n', 'utf8')
+  return updated
+}
+
 
 export interface AahpFileEntry {
   checksum: string
@@ -258,7 +463,11 @@ export function scanAllRepoOverviews(rootDir: string): RepoOverview[] {
     if (!fs.existsSync(manifestPath)) continue
 
     try {
-      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as AahpManifest
+      // Sync GitHub issues ↔ MANIFEST before building the overview
+      let manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as AahpManifest
+      manifest = fetchAndSyncGitHubIssues(repoPath, handoffDir, manifest)
+      manifest = createMissingGitHubIssues(repoPath, handoffDir, manifest)
+
       const tasks = manifest.tasks ?? {}
       const taskEntries = Object.values(tasks)
 

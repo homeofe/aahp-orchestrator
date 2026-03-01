@@ -4,10 +4,10 @@
   "last_session": {
     "agent": "claude-code",
     "session_id": "t014-fix-dashboard-first-render-2026-03-01",
-    "timestamp": "2026-03-01T14:20:00.000Z",
+    "timestamp": "2026-03-01T13:18:23.079Z",
     "commit": "fa155df",
     "phase": "implementation",
-    "duration_minutes": 15
+    "duration_minutes": 2
   },
   "files": {
     "STATUS.md": {
@@ -197,7 +197,7 @@
       "notes": "## Summary\nOn VS Code startup, the AAHP dashboard often renders in a degraded single-project state (only `PROJECT` section for one repo).\nAfter running `AAHP: Refresh Dashboard`, the dashboard switches to the expected multi-repo layout (`REPOS`, `ALL OPEN TASKS`, metrics/cards across many repos).\n\nIn affected sessions, running `AAHP: Refresh Dashboard` from Command Palette can also fail with:\n`command 'aahp.refreshAll' not found`.\n\n## Impact\n- Startup UX is inconsistent and misleading.\n- Users m",
       "github_issue": 5,
       "github_repo": "homeofe/aahp-orchestrator",
-      "completed": "2026-03-01T14:20:00.000Z"
+      "completed": "2026-03-01T13:18:23.079Z"
     },
     "T-015": {
       "title": "Add GitHub links to All Open Tasks tree view",
