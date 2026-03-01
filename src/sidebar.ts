@@ -1219,7 +1219,13 @@ h2 { font-size: 14px; margin: 0 0 4px; }
         const fixBtn = item.taskId
           ? `<button class="fix-btn" data-cmd="fixTask" data-repo-path="${escHtml(repo.repoPath)}" data-task-id="${escHtml(item.taskId)}" title="Run agent to fix this task">&#9654;</button>`
           : ''
-        const linkedIssue = item.taskId ? repo.manifest.tasks?.[item.taskId]?.github_issue : undefined
+        const rawIssue = item.taskId ? repo.manifest.tasks?.[item.taskId]?.github_issue : undefined
+        // Safely coerce: legacy string URLs like "https://.../issues/5" → 5
+        const linkedIssue: number | undefined = typeof rawIssue === 'number' && rawIssue > 0
+          ? rawIssue
+          : typeof rawIssue === 'string'
+            ? (parseInt((rawIssue as string).match(/\/issues\/(\d+)$/)?.[1] ?? '', 10) || undefined)
+            : undefined
         const ghIssueBtn = (item.taskId && repo.githubUrl)
           ? `<a class="gh-link" data-cmd="openUrl" data-url="${linkedIssue ? `${escHtml(repo.githubUrl)}/issues/${linkedIssue}` : `${escHtml(repo.githubUrl)}/issues?q=${escHtml(item.taskId)}`}" title="${linkedIssue ? `Open linked GitHub Issue #${linkedIssue}` : `Search GitHub Issues for ${escHtml(item.taskId)}`}">GH</a>`
           : ''

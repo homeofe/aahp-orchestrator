@@ -44,6 +44,29 @@ function extractTaskIdFromTitle(title: string): string | undefined {
   return title.match(/\b(T-\d{3,})\b/i)?.[1]?.toUpperCase()
 }
 
+/** Normalize a task/issue title for fuzzy matching: lowercase, strip T-NNN prefix,
+ *  strip "(issue #N)" annotations, collapse non-alphanumeric runs to spaces. */
+function normalizeTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/^\[T-\d+\]\s*/i, '')
+    .replace(/\(issue #\d+\)/gi, '')
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/** Safely extract a numeric issue number from a github_issue value that may be
+ *  stored as a number or as a legacy full URL string ("https://.../issues/5"). */
+function extractIssueNumber(raw: unknown): number | undefined {
+  if (typeof raw === 'number' && raw > 0) return raw
+  if (typeof raw === 'string' && raw) {
+    const m = raw.match(/\/issues\/(\d+)$/)
+    if (m?.[1]) return parseInt(m[1], 10)
+  }
+  return undefined
+}
+
 /** Fetch GitHub issues (all states) and sync them into the manifest.
  *  Writes MANIFEST.json if anything changed. Returns updated manifest. */
 function fetchAndSyncGitHubIssues(
@@ -69,15 +92,37 @@ function fetchAndSyncGitHubIssues(
   let nextId = manifest.next_task_id ?? (Object.keys(tasks).length + 1)
   let changed = false
 
+  // Migration: normalize any legacy string URL github_issue values to plain numbers
+  for (const task of Object.values(tasks)) {
+    if (typeof (task.github_issue as unknown) === 'string') {
+      const num = extractIssueNumber(task.github_issue)
+      if (num !== undefined) {
+        task.github_issue = num
+        changed = true
+      } else {
+        delete task.github_issue
+        changed = true
+      }
+    }
+  }
+
   const importedNums = new Set(
-    Object.values(tasks).map(t => t.github_issue).filter((n): n is number => n !== undefined)
+    Object.values(tasks).map(t => t.github_issue).filter((n): n is number => typeof n === 'number')
+  )
+
+  // Build a normalized-title → taskId lookup for title-based fallback matching
+  const titleToTaskId = new Map(
+    Object.entries(tasks)
+      .filter(([, t]) => !t.github_issue)
+      .map(([id, t]) => [normalizeTitle(t.title), id])
   )
 
   for (const issue of issues) {
     if (importedNums.has(issue.number)) continue
     const githubStatus = githubStateToAahpStatus(issue.state, issue.labels)
-    const existingId = extractTaskIdFromTitle(issue.title)
 
+    // 1. Match by T-NNN embedded in the issue title
+    const existingId = extractTaskIdFromTitle(issue.title)
     if (existingId && tasks[existingId]) {
       const task = tasks[existingId]!
       let taskChanged = false
@@ -87,12 +132,24 @@ function fetchAndSyncGitHubIssues(
         taskChanged = true
       }
       const shouldSync = githubStatus === 'done' || task.status !== 'in_progress'
-      if (shouldSync && task.status !== githubStatus) {
-        task.status = githubStatus
-        taskChanged = true
-      }
+      if (shouldSync && task.status !== githubStatus) { task.status = githubStatus; taskChanged = true }
       if (taskChanged) changed = true
       importedNums.add(issue.number)
+      continue
+    }
+
+    // 2. Fallback: match by normalized title (handles old manually-created issues)
+    const normalizedIssueTitle = normalizeTitle(issue.title)
+    const titleMatchId = titleToTaskId.get(normalizedIssueTitle)
+    if (titleMatchId && tasks[titleMatchId]) {
+      const task = tasks[titleMatchId]!
+      task.github_issue = issue.number
+      task.github_repo = repo
+      const shouldSync = githubStatus === 'done' || task.status !== 'in_progress'
+      if (shouldSync && task.status !== githubStatus) task.status = githubStatus
+      titleToTaskId.delete(normalizedIssueTitle) // prevent double-linking
+      importedNums.add(issue.number)
+      changed = true
       continue
     }
 
@@ -424,19 +481,32 @@ function getGithubUrl(repoPath: string): string | undefined {
 
 /** Cross-reference parsed NEXT_ACTIONS items with MANIFEST.json task statuses.
  *  For items with a known task ID, MANIFEST status is the source of truth.
+ *  For items WITHOUT a task ID, tries to find a match by normalized title.
  *  This prevents stale NEXT_ACTIONS headings from showing done tasks as ready. */
 function inferSectionsFromManifest(items: NextActionItem[], tasks: Record<string, AahpTask>): NextActionItem[] {
+  const sectionMap: Record<string, NextActionItem['section']> = {
+    ready: 'ready', in_progress: 'in_progress', blocked: 'blocked',
+    done: 'done', pending: 'ready',
+  }
+
+  // Build a normalized-title → taskId lookup for items without an explicit ID
+  const titleLookup = new Map(
+    Object.entries(tasks).map(([id, t]) => [normalizeTitle(t.title), id])
+  )
+
   return items.map(item => {
-    if (item.taskId && tasks[item.taskId]) {
-      const manifestStatus = tasks[item.taskId]!.status
-      const sectionMap: Record<string, NextActionItem['section']> = {
-        ready: 'ready', in_progress: 'in_progress', blocked: 'blocked',
-        done: 'done', pending: 'ready',
-      }
-      return { ...item, section: sectionMap[manifestStatus] ?? 'ready' }
+    let taskId = item.taskId
+
+    // If no taskId in NEXT_ACTIONS, try to find one by title
+    if (!taskId) {
+      taskId = titleLookup.get(normalizeTitle(item.title))
+    }
+
+    if (taskId && tasks[taskId]) {
+      const manifestStatus = tasks[taskId]!.status
+      return { ...item, taskId, section: sectionMap[manifestStatus] ?? 'ready' }
     }
     if (item.section !== 'unknown') return item
-    // No task ID or task not in manifest - default to ready
     return { ...item, section: 'ready' }
   })
 }

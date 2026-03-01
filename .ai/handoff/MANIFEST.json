@@ -4,10 +4,10 @@
   "last_session": {
     "agent": "claude-code",
     "session_id": "t015-github-links-tree-view-2026-03-01",
-    "timestamp": "2026-03-01T14:40:00.000Z",
+    "timestamp": "2026-03-01T13:39:34.983Z",
     "commit": "30cc3ca",
     "phase": "implementation",
-    "duration_minutes": 10
+    "duration_minutes": 2
   },
   "files": {
     "STATUS.md": {
@@ -205,10 +205,10 @@
       "priority": "medium",
       "depends_on": [],
       "created": "2026-03-01T12:58:44.331Z",
-      "completed": "2026-03-01T14:40:00.000Z",
-      "notes": "Inline GitHub icon button on each task in the All Open Tasks tree view. Opens direct issue URL (when github_issue is linked) or falls back to GitHub Issues search. Enhanced tooltip shows GitHub issue number. 7 new tests in commands-github.test.ts, 2 tooltip tests in task-tree.test.ts.",
+      "notes": "## Problem\n\nThe **Dashboard** webview has GitHub links (GH badges) next to repos and tasks, making it easy to jump to GitHub Issues. However, the **All Open Tasks** tree view in the sidebar has no GitHub links at all.\n\nUsers need quick access to GitHub from every task - not just from the dashboard panel.\n\n## Expected Behavior\n\nEach task item in the \"All Open Tasks\" tree view should have an inline action button (icon) that opens the corresponding GitHub Issues search for that task ID. This should",
       "github_issue": 2,
-      "github_repo": "homeofe/aahp-orchestrator"
+      "github_repo": "homeofe/aahp-orchestrator",
+      "completed": "2026-03-01T13:39:34.983Z"
     },
     "T-016": {
       "title": "Dashboard requires manual refresh after VS Code startup",
