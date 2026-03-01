@@ -32,8 +32,8 @@ function labelsToPriority(labels: Array<{ name: string }>): AahpTask['priority']
   return 'low'
 }
 
-function githubStateToAahpStatus(state: string, labels: Array<{ name: string }>): AahpTask['status'] {
-  if (state === 'closed') return 'done'
+function githubStateToAahpStatus(state: string, labels: Array<{ name: string }>, stateReason?: string | null): AahpTask['status'] {
+  if (state === 'closed') return stateReason === 'not_planned' ? 'cancelled' : 'done'
   const names = labels.map(l => l.name.toLowerCase())
   if (names.some(n => n.includes('in progress') || n.includes('in-progress') || n.includes('wip'))) return 'in_progress'
   if (names.some(n => n.includes('blocked') || n.includes('on hold') || n.includes('on-hold'))) return 'blocked'
@@ -126,7 +126,7 @@ function fetchAndSyncGitHubIssues(
   )
 
   for (const issue of issues) {
-    const githubStatus = githubStateToAahpStatus(issue.state, issue.labels)
+    const githubStatus = githubStateToAahpStatus(issue.state, issue.labels, issue.stateReason)
 
     if (importedNums.has(issue.number)) {
       // Already linked - sync task status with GitHub issue state
@@ -134,13 +134,13 @@ function fetchAndSyncGitHubIssues(
       if (linkedTaskId && tasks[linkedTaskId]) {
         const task = tasks[linkedTaskId]!
         const taskStatus = task.status as string
-        if (issue.state === 'closed' && taskStatus !== 'done') {
-          // Issue closed but task still open - mark done
-          task.status = 'done'
+        if (issue.state === 'closed' && taskStatus !== 'done' && taskStatus !== 'cancelled') {
+          // Issue closed - mark done or cancelled depending on stateReason
+          task.status = githubStatus  // 'done' or 'cancelled'
           if (!task.completed) task.completed = new Date().toISOString()
           changed = true
-        } else if (issue.state === 'open' && (taskStatus === 'done' || taskStatus === 'completed')) {
-          // Issue still open but task was marked done - restore to ready
+        } else if (issue.state === 'open' && (taskStatus === 'done' || taskStatus === 'completed' || taskStatus === 'cancelled')) {
+          // Issue re-opened but task was marked done/cancelled - restore to ready
           task.status = githubStatus
           delete task.completed
           changed = true
@@ -376,7 +376,7 @@ export interface AahpFileEntry {
 
 export interface AahpTask {
   title: string
-  status: 'ready' | 'in_progress' | 'done' | 'blocked' | 'pending'
+  status: 'ready' | 'in_progress' | 'done' | 'blocked' | 'pending' | 'cancelled'
   priority: 'high' | 'medium' | 'low'
   depends_on: string[]
   created: string
