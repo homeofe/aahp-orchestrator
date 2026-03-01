@@ -212,13 +212,14 @@
     },
     "T-016": {
       "title": "Dashboard requires manual refresh after VS Code startup",
-      "status": "ready",
+      "status": "done",
       "priority": "high",
       "depends_on": [],
       "created": "2026-03-01T12:58:44.331Z",
       "notes": "## Priority: HIGH\n\n## Problem\n\nEvery time VS Code starts, the AAHP Dashboard does not automatically refresh. The user must manually trigger a refresh via:\n\n1. Press `Ctrl+Shift+P` to open the Command Palette\n2. Type `AAHP: Refresh Dashboard`\n3. Execute the command\n\nThis is disruptive to the workflow and should not be necessary on every startup.\n\n## Expected Behavior\n\nThe dashboard should automatically refresh/initialize when VS Code starts (or when the extension activates). No manual interventio",
       "github_issue": 1,
-      "github_repo": "homeofe/aahp-orchestrator"
+      "github_repo": "homeofe/aahp-orchestrator",
+      "completed": "2026-03-01T14:20:00.000Z"
     }
   }
 }

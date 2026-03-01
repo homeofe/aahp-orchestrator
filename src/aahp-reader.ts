@@ -142,6 +142,11 @@ function fetchAndSyncGitHubIssues(
       continue
     }
 
+    // Don't create new MANIFEST tasks from already-closed GitHub issues.
+    // Closed issues can be matched to existing tasks (above), but we don't
+    // want to re-import closed issues as fresh work items every scan.
+    if (issue.state === 'closed') continue
+
     // 1. Match by T-NNN embedded in the issue title
     const existingId = extractTaskIdFromTitle(issue.title)
     if (existingId && tasks[existingId]) {
@@ -174,8 +179,8 @@ function fetchAndSyncGitHubIssues(
       continue
     }
 
-    if (issue.state === 'closed') continue
-
+    // Only create new MANIFEST tasks from OPEN issues (no need for a second closed-check here
+    // since line 148 above already skips closed issues before we reach this point)
     const taskId = `T-${String(nextId).padStart(3, '0')}`
     tasks[taskId] = {
       title: issue.title,
