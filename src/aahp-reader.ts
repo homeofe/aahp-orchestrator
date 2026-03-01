@@ -129,13 +129,20 @@ function fetchAndSyncGitHubIssues(
     const githubStatus = githubStateToAahpStatus(issue.state, issue.labels)
 
     if (importedNums.has(issue.number)) {
-      // Already linked - check if the GitHub issue was closed and task needs status update
+      // Already linked - sync task status with GitHub issue state
       const linkedTaskId = issueNumToTaskId.get(issue.number)
       if (linkedTaskId && tasks[linkedTaskId]) {
         const task = tasks[linkedTaskId]!
-        if (issue.state === 'closed' && task.status !== 'done') {
+        const taskStatus = task.status as string
+        if (issue.state === 'closed' && taskStatus !== 'done') {
+          // Issue closed but task still open - mark done
           task.status = 'done'
           if (!task.completed) task.completed = new Date().toISOString()
+          changed = true
+        } else if (issue.state === 'open' && (taskStatus === 'done' || taskStatus === 'completed')) {
+          // Issue still open but task was marked done - restore to ready
+          task.status = githubStatus
+          delete task.completed
           changed = true
         }
       }
