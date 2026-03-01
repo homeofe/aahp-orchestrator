@@ -1129,6 +1129,9 @@ h2 { font-size: 14px; margin: 0 0 4px; }
       return html
     }
 
+    // Build GitHub URL lookup by repoPath for adding GH links to each task row
+    const repoGhUrls = new Map(overviews.map(r => [r.repoPath, r.githubUrl]))
+
     html += `<table class="agg-table">`
     for (const ft of tasks) {
       const priClass =
@@ -1143,6 +1146,17 @@ h2 { font-size: 14px; margin: 0 0 4px; }
         ? ` data-dbl="fixTask" data-repo-path="${escHtml(ft.repoPath)}" data-task-id="${escHtml(ft.taskId)}"`
         : ''
 
+      // GH link - safely coerce string URL legacy values to number
+      const repoGhUrl = repoGhUrls.get(ft.repoPath)
+      const rawIssue = ft.task.github_issue
+      const issueNum: number | undefined = typeof rawIssue === 'number' && rawIssue > 0 ? rawIssue
+        : typeof rawIssue === 'string'
+          ? (parseInt((rawIssue as string).match(/\/issues\/(\d+)$/)?.[1] ?? '', 10) || undefined)
+          : undefined
+      const ghLink = (ft.taskId && repoGhUrl)
+        ? `<a class="gh-link" data-cmd="openUrl" data-url="${issueNum ? `${escHtml(repoGhUrl)}/issues/${issueNum}` : `${escHtml(repoGhUrl)}/issues?q=${escHtml(ft.taskId)}`}" title="${issueNum ? `GH #${issueNum}` : `Search ${escHtml(ft.taskId)}`}">GH</a>`
+        : ''
+
       html += `<tr${dblAttr}>
         <td style="font-size:11px;opacity:.6;width:16px">${icon}</td>
         <td class="task-id">${escHtml(ft.taskId)}</td>
@@ -1150,6 +1164,7 @@ h2 { font-size: 14px; margin: 0 0 4px; }
         <td><span class="${priClass}" style="font-size:10px">${escHtml(ft.task.priority)}</span></td>
         <td class="agg-repo">${escHtml(ft.repoName)}</td>
         <td class="agg-age">${escHtml(age)}</td>
+        <td>${ghLink}</td>
       </tr>`
     }
     html += `</table>`
@@ -1343,7 +1358,14 @@ h2 { font-size: 14px; margin: 0 0 4px; }
         ? `<button class="fix-btn" data-cmd="fixTask" data-repo-path="${escHtml(repoPath)}" data-task-id="${escHtml(id)}" title="Run agent to fix this task">&#9654;</button>`
         : ''
       const ghIssueBtn = repoGhUrl
-        ? `<a class="gh-link" data-cmd="openUrl" data-url="${typeof t.github_issue === 'number' && t.github_issue > 0 ? `${escHtml(repoGhUrl)}/issues/${t.github_issue}` : `${escHtml(repoGhUrl)}/issues?q=${escHtml(id)}`}" title="${typeof t.github_issue === 'number' && t.github_issue > 0 ? `Open linked GitHub Issue #${t.github_issue}` : `Search GitHub Issues for ${escHtml(id)}`}">GH</a>`
+        ? (() => {
+            const rawNum = t.github_issue
+            const issueNum: number | undefined = typeof rawNum === 'number' && rawNum > 0 ? rawNum
+              : typeof rawNum === 'string'
+                ? (parseInt((rawNum as string).match(/\/issues\/(\d+)$/)?.[1] ?? '', 10) || undefined)
+                : undefined
+            return `<a class="gh-link" data-cmd="openUrl" data-url="${issueNum ? `${escHtml(repoGhUrl)}/issues/${issueNum}` : `${escHtml(repoGhUrl)}/issues?q=${escHtml(id)}`}" title="${issueNum ? `Open linked GitHub Issue #${issueNum}` : `Search GitHub Issues for ${escHtml(id)}`}">GH</a>`
+          })()
         : ''
 
       const dblAttr = t.status !== 'done'

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
 import * as path from 'path'
+import * as os from 'os'
 import { loadAahpContext, getWorkspaceRoot, AahpContext, scanAllRepoOverviews } from './aahp-reader'
 import { createStatusBar, updateStatusBar, createAgentStatusBar, updateAgentStatusBar } from './statusbar'
 import { registerChatParticipant } from './chat-participant'
@@ -275,6 +276,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   actionsWatcher.onDidCreate(refreshAll)
   actionsWatcher.onDidDelete(refreshAll)
   context.subscriptions.push(actionsWatcher)
+
+  // ── File watcher: auto-refresh when aahp-runner writes metrics or sessions ──
+  // These files live in ~/.aahp (outside workspace), so RelativePattern is required.
+  const aahpHome = vscode.Uri.file(path.join(os.homedir(), '.aahp'))
+  const metricsWatcher = vscode.workspace.createFileSystemWatcher(
+    new vscode.RelativePattern(aahpHome, 'metrics.jsonl')
+  )
+  metricsWatcher.onDidChange(refreshAll)
+  metricsWatcher.onDidCreate(refreshAll)
+  context.subscriptions.push(metricsWatcher)
+
+  const sessionsWatcher = vscode.workspace.createFileSystemWatcher(
+    new vscode.RelativePattern(aahpHome, 'sessions.json')
+  )
+  sessionsWatcher.onDidChange(refreshAll)
+  sessionsWatcher.onDidCreate(refreshAll)
+  sessionsWatcher.onDidDelete(refreshAll)
+  context.subscriptions.push(sessionsWatcher)
 
   // ── Re-resolve context when active editor changes (user switches repo) ───────
   context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(refreshAll))
