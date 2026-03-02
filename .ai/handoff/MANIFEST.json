@@ -80,7 +80,7 @@
     "T-003": {
       "title": "Publish to VS Code Marketplace",
       "status": "pending",
-      "priority": "medium",
+      "priority": "low",
       "depends_on": [
         "T-004"
       ],
@@ -224,7 +224,7 @@
     "T-017": {
       "title": "Refresh stale handoff documentation [high]",
       "status": "ready",
-      "priority": "medium",
+      "priority": "high",
       "depends_on": [],
       "created": "2026-03-02T03:31:07.797Z",
       "github_issue": 7,
@@ -251,7 +251,7 @@
     "T-020": {
       "title": "Atomic file writes for manifest and session data [low]",
       "status": "ready",
-      "priority": "medium",
+      "priority": "low",
       "depends_on": [],
       "created": "2026-03-02T03:31:07.800Z",
       "github_issue": 10,
@@ -260,7 +260,7 @@
     "T-021": {
       "title": "Create project-specific CLAUDE.md [low]",
       "status": "blocked",
-      "priority": "medium",
+      "priority": "low",
       "depends_on": [],
       "created": "2026-03-02T03:31:07.800Z",
       "github_issue": 11,
