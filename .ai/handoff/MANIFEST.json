@@ -59,7 +59,7 @@
     "manifest_plus_core": 1200,
     "full_read": 5000
   },
-  "next_task_id": 17,
+  "next_task_id": 22,
   "tasks": {
     "T-001": {
       "title": "Add GitHub Actions CI pipeline",
@@ -220,6 +220,51 @@
       "github_issue": 1,
       "github_repo": "homeofe/aahp-orchestrator",
       "completed": "2026-03-01T14:20:00.000Z"
+    },
+    "T-017": {
+      "title": "Refresh stale handoff documentation [high]",
+      "status": "ready",
+      "priority": "medium",
+      "depends_on": [],
+      "created": "2026-03-02T03:31:07.797Z",
+      "github_issue": 7,
+      "github_repo": "homeofe/aahp-orchestrator"
+    },
+    "T-018": {
+      "title": "Unit tests for sidebar webview provider [medium]",
+      "status": "ready",
+      "priority": "medium",
+      "depends_on": [],
+      "created": "2026-03-02T03:31:07.797Z",
+      "github_issue": 8,
+      "github_repo": "homeofe/aahp-orchestrator"
+    },
+    "T-019": {
+      "title": "Unit tests for commands module [medium]",
+      "status": "ready",
+      "priority": "medium",
+      "depends_on": [],
+      "created": "2026-03-02T03:31:07.799Z",
+      "github_issue": 9,
+      "github_repo": "homeofe/aahp-orchestrator"
+    },
+    "T-020": {
+      "title": "Atomic file writes for manifest and session data [low]",
+      "status": "ready",
+      "priority": "medium",
+      "depends_on": [],
+      "created": "2026-03-02T03:31:07.800Z",
+      "github_issue": 10,
+      "github_repo": "homeofe/aahp-orchestrator"
+    },
+    "T-021": {
+      "title": "Create project-specific CLAUDE.md [low]",
+      "status": "blocked",
+      "priority": "medium",
+      "depends_on": [],
+      "created": "2026-03-02T03:31:07.800Z",
+      "github_issue": 11,
+      "github_repo": "homeofe/aahp-orchestrator"
     }
   }
 }
