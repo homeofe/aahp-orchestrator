@@ -25,11 +25,12 @@ function detectGitHubRepo(repoPath: string): string | null {
   } catch { return null }
 }
 
-function labelsToPriority(labels: Array<{ name: string }>): AahpTask['priority'] {
+function labelsToPriority(labels: Array<{ name: string }>): AahpTask['priority'] | undefined {
   const names = labels.map(l => l.name.toLowerCase())
   if (names.some(n => n.includes('high') || n.includes('bug') || n.includes('critical') || n.includes('urgent'))) return 'high'
   if (names.some(n => n.includes('medium') || n.includes('enhancement') || n.includes('feature'))) return 'medium'
-  return 'low'
+  if (names.some(n => n.includes('low'))) return 'low'
+  return undefined
 }
 
 /** Extract priority from a title containing [high], [medium], [low], or (high priority) etc. */
@@ -155,9 +156,9 @@ function fetchAndSyncGitHubIssues(
           delete task.completed
           changed = true
         }
-        // Always sync priority from current GitHub labels
+        // Sync priority from current GitHub labels (only when issue has a priority label)
         const ghPriority = labelsToPriority(issue.labels)
-        if (task.priority !== ghPriority) {
+        if (ghPriority && task.priority !== ghPriority) {
           task.priority = ghPriority
           changed = true
         }
@@ -182,9 +183,9 @@ function fetchAndSyncGitHubIssues(
       }
       const shouldSync = githubStatus === 'done' || task.status !== 'in_progress'
       if (shouldSync && task.status !== githubStatus) { task.status = githubStatus; taskChanged = true }
-      // Sync priority from current GitHub labels
+      // Sync priority from current GitHub labels (only when issue has a priority label)
       const ghPriority = labelsToPriority(issue.labels)
-      if (task.priority !== ghPriority) { task.priority = ghPriority; taskChanged = true }
+      if (ghPriority && task.priority !== ghPriority) { task.priority = ghPriority; taskChanged = true }
       if (taskChanged) changed = true
       importedNums.add(issue.number)
       continue
@@ -199,8 +200,9 @@ function fetchAndSyncGitHubIssues(
       task.github_repo = repo
       const shouldSync = githubStatus === 'done' || task.status !== 'in_progress'
       if (shouldSync && task.status !== githubStatus) task.status = githubStatus
-      // Sync priority from current GitHub labels
-      task.priority = labelsToPriority(issue.labels)
+      // Sync priority from current GitHub labels (only when issue has a priority label)
+      const ghPriority3 = labelsToPriority(issue.labels)
+      if (ghPriority3) task.priority = ghPriority3
       titleToTaskId.delete(normalizedIssueTitle) // prevent double-linking
       importedNums.add(issue.number)
       changed = true
@@ -213,7 +215,7 @@ function fetchAndSyncGitHubIssues(
     tasks[taskId] = {
       title: issue.title,
       status: githubStatus,
-      priority: labelsToPriority(issue.labels),
+      priority: labelsToPriority(issue.labels) ?? extractPriorityFromTitle(issue.title) ?? 'medium',
       depends_on: [],
       created: new Date().toISOString(),
       ...(issue.body ? { notes: issue.body.slice(0, 500) } : {}),
