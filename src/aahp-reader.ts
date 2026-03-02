@@ -129,7 +129,7 @@ function fetchAndSyncGitHubIssues(
     const githubStatus = githubStateToAahpStatus(issue.state, issue.labels, issue.stateReason)
 
     if (importedNums.has(issue.number)) {
-      // Already linked - sync task status with GitHub issue state
+      // Already linked - sync task status and priority with GitHub issue state/labels
       const linkedTaskId = issueNumToTaskId.get(issue.number)
       if (linkedTaskId && tasks[linkedTaskId]) {
         const task = tasks[linkedTaskId]!
@@ -143,6 +143,12 @@ function fetchAndSyncGitHubIssues(
           // Issue re-opened but task was marked done/cancelled - restore to ready
           task.status = githubStatus
           delete task.completed
+          changed = true
+        }
+        // Always sync priority from current GitHub labels
+        const ghPriority = labelsToPriority(issue.labels)
+        if (task.priority !== ghPriority) {
+          task.priority = ghPriority
           changed = true
         }
       }
@@ -166,6 +172,9 @@ function fetchAndSyncGitHubIssues(
       }
       const shouldSync = githubStatus === 'done' || task.status !== 'in_progress'
       if (shouldSync && task.status !== githubStatus) { task.status = githubStatus; taskChanged = true }
+      // Sync priority from current GitHub labels
+      const ghPriority = labelsToPriority(issue.labels)
+      if (task.priority !== ghPriority) { task.priority = ghPriority; taskChanged = true }
       if (taskChanged) changed = true
       importedNums.add(issue.number)
       continue
@@ -180,6 +189,8 @@ function fetchAndSyncGitHubIssues(
       task.github_repo = repo
       const shouldSync = githubStatus === 'done' || task.status !== 'in_progress'
       if (shouldSync && task.status !== githubStatus) task.status = githubStatus
+      // Sync priority from current GitHub labels
+      task.priority = labelsToPriority(issue.labels)
       titleToTaskId.delete(normalizedIssueTitle) // prevent double-linking
       importedNums.add(issue.number)
       changed = true
