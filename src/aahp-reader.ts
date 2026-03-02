@@ -32,6 +32,16 @@ function labelsToPriority(labels: Array<{ name: string }>): AahpTask['priority']
   return 'low'
 }
 
+/** Extract priority from a title containing [high], [medium], [low], or (high priority) etc. */
+function extractPriorityFromTitle(title: string): AahpTask['priority'] | undefined {
+  const lower = title.toLowerCase()
+  const bracket = lower.match(/\[(high|medium|low)\]/)
+  if (bracket?.[1]) return bracket[1] as AahpTask['priority']
+  const paren = lower.match(/\(?(high|medium|low)\s*priority\)?/)
+  if (paren?.[1]) return paren[1] as AahpTask['priority']
+  return undefined
+}
+
 function githubStateToAahpStatus(state: string, labels: Array<{ name: string }>, stateReason?: string | null): AahpTask['status'] {
   if (state === 'closed') return stateReason === 'not_planned' ? 'cancelled' : 'done'
   const names = labels.map(l => l.name.toLowerCase())
@@ -263,6 +273,11 @@ function createMissingGitHubIssues(
 
   let changed = false
   for (const [taskId, task] of toCreate) {
+    // Reconcile priority: title may contain [high]/[medium]/[low] that overrides task.priority
+    const titlePri = extractPriorityFromTitle(task.title)
+    if (titlePri && titlePri !== task.priority) {
+      task.priority = titlePri
+    }
     const title = `[${taskId}] ${task.title}`
     const labelArgs = [
       ...(PRIORITY_LABELS[task.priority] ? ['--label', PRIORITY_LABELS[task.priority]!.name] : []),
@@ -350,9 +365,12 @@ function syncNextActionsToManifest(
     const status: AahpTask['status'] =
       item.section === 'in_progress' ? 'in_progress' :
       item.section === 'blocked' ? 'blocked' : 'ready'
+    const titlePri = extractPriorityFromTitle(item.title)
     const priority: AahpTask['priority'] =
       item.priority === 'high' ? 'high' :
-      item.priority === 'low'  ? 'low'  : 'medium'
+      item.priority === 'medium' ? 'medium' :
+      item.priority === 'low'  ? 'low'  :
+      titlePri ?? 'medium'
 
     tasks[taskId] = {
       title: item.title.trim(),
@@ -505,6 +523,9 @@ export function parseNextActions(markdown: string): NextActionItem[] {
             const priMatch = trimmed.match(/\*\(?(high|medium|low)\s*priority\)?\*/i)
             if (priMatch && priMatch[1]) priority = priMatch[1].toLowerCase()
           }
+          if (!priority) {
+            priority = extractPriorityFromTitle(rawTitle)
+          }
 
           const item: NextActionItem = { section: itemSection, title: rawTitle }
           if (taskHeading[1]) item.taskId = taskHeading[1]
@@ -524,11 +545,13 @@ export function parseNextActions(markdown: string): NextActionItem[] {
       const isDone = checkMatch[1].toLowerCase() === 'x'
       const rawTitle = checkMatch[2].replace(/\*+/g, '').trim()
       const priMatch = rawTitle.match(/\(?(high|medium|low)\s*priority\)?/i)
+      const bracketPri = extractPriorityFromTitle(rawTitle)
       const item: NextActionItem = {
         section: isDone ? 'done' : currentSection,
-        title: rawTitle.replace(/\(?(high|medium|low)\s*priority\)?/i, '').trim(),
+        title: rawTitle.replace(/\(?(high|medium|low)\s*priority\)?/i, '').replace(/\s*\[(high|medium|low)\]\s*/i, ' ').trim(),
       }
       if (priMatch && priMatch[1]) item.priority = priMatch[1].toLowerCase()
+      else if (bracketPri) item.priority = bracketPri
       items.push(item)
       continue
     }
@@ -541,13 +564,15 @@ export function parseNextActions(markdown: string): NextActionItem[] {
         if (rawTitle.length > 5 && rawTitle.length < 200 && !/^(add|create|run|install|update|verify|test|check|open|set|write|read|import|export|mock|show|use)\s/i.test(rawTitle)) {
           const isDone = /~~.+~~/.test(rawTitle) || /\bDONE\b/i.test(rawTitle)
           const priMatch = rawTitle.match(/\(?(high|medium|low)\s*priority\)?/i)
+          const bracketPri = extractPriorityFromTitle(rawTitle)
           const taskIdMatch = rawTitle.match(/(T-\d+)/)
           const item: NextActionItem = {
             section: isDone ? 'done' : currentSection,
-            title: rawTitle.replace(/~~(.+)~~/, '$1').replace(/\s*-\s*DONE.*$/i, '').replace(/\(?(high|medium|low)\s*priority\)?/i, '').trim(),
+            title: rawTitle.replace(/~~(.+)~~/, '$1').replace(/\s*-\s*DONE.*$/i, '').replace(/\(?(high|medium|low)\s*priority\)?/i, '').replace(/\s*\[(high|medium|low)\]\s*/i, ' ').trim(),
           }
           if (taskIdMatch && taskIdMatch[1]) item.taskId = taskIdMatch[1]
           if (priMatch && priMatch[1]) item.priority = priMatch[1].toLowerCase()
+          else if (bracketPri) item.priority = bracketPri
           items.push(item)
         }
       }
