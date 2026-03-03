@@ -43,6 +43,11 @@ function extractPriorityFromTitle(title: string): AahpTask['priority'] | undefin
   return undefined
 }
 
+/** Resolve issue priority with explicit title marker taking precedence over labels. */
+function resolveIssuePriority(issue: Pick<GitHubIssue, 'title' | 'labels'>): AahpTask['priority'] | undefined {
+  return extractPriorityFromTitle(issue.title) ?? labelsToPriority(issue.labels)
+}
+
 function githubStateToAahpStatus(state: string, labels: Array<{ name: string }>, stateReason?: string | null): AahpTask['status'] {
   if (state === 'closed') return stateReason === 'not_planned' ? 'cancelled' : 'done'
   const names = labels.map(l => l.name.toLowerCase())
@@ -156,8 +161,8 @@ function fetchAndSyncGitHubIssues(
           delete task.completed
           changed = true
         }
-        // Sync priority from current GitHub labels (only when issue has a priority label)
-        const ghPriority = labelsToPriority(issue.labels)
+        // Sync priority from issue metadata with title marker precedence
+        const ghPriority = resolveIssuePriority(issue)
         if (ghPriority && task.priority !== ghPriority) {
           task.priority = ghPriority
           changed = true
@@ -183,8 +188,8 @@ function fetchAndSyncGitHubIssues(
       }
       const shouldSync = githubStatus === 'done' || task.status !== 'in_progress'
       if (shouldSync && task.status !== githubStatus) { task.status = githubStatus; taskChanged = true }
-      // Sync priority from current GitHub labels (only when issue has a priority label)
-      const ghPriority = labelsToPriority(issue.labels)
+      // Sync priority from issue metadata with title marker precedence
+      const ghPriority = resolveIssuePriority(issue)
       if (ghPriority && task.priority !== ghPriority) { task.priority = ghPriority; taskChanged = true }
       if (taskChanged) changed = true
       importedNums.add(issue.number)
@@ -200,8 +205,8 @@ function fetchAndSyncGitHubIssues(
       task.github_repo = repo
       const shouldSync = githubStatus === 'done' || task.status !== 'in_progress'
       if (shouldSync && task.status !== githubStatus) task.status = githubStatus
-      // Sync priority from current GitHub labels (only when issue has a priority label)
-      const ghPriority3 = labelsToPriority(issue.labels)
+      // Sync priority from issue metadata with title marker precedence
+      const ghPriority3 = resolveIssuePriority(issue)
       if (ghPriority3) task.priority = ghPriority3
       titleToTaskId.delete(normalizedIssueTitle) // prevent double-linking
       importedNums.add(issue.number)
@@ -215,7 +220,7 @@ function fetchAndSyncGitHubIssues(
     tasks[taskId] = {
       title: issue.title,
       status: githubStatus,
-      priority: labelsToPriority(issue.labels) ?? extractPriorityFromTitle(issue.title) ?? 'medium',
+      priority: resolveIssuePriority(issue) ?? 'medium',
       depends_on: [],
       created: new Date().toISOString(),
       ...(issue.body ? { notes: issue.body.slice(0, 500) } : {}),
