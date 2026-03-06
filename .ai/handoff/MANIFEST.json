@@ -259,12 +259,13 @@
     },
     "T-021": {
       "title": "Create project-specific CLAUDE.md [low]",
-      "status": "blocked",
+      "status": "done",
       "priority": "low",
       "depends_on": [],
       "created": "2026-03-02T03:31:07.800Z",
       "github_issue": 11,
-      "github_repo": "homeofe/aahp-orchestrator"
+      "github_repo": "homeofe/aahp-orchestrator",
+      "completed": "2026-03-06T00:00:00.000Z"
     }
   }
 }
