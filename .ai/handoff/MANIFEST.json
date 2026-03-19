@@ -3,42 +3,42 @@
   "project": "aahp-orchestrator",
   "last_session": {
     "agent": "claude-code",
-    "session_id": "t015-github-links-tree-view-2026-03-01",
-    "timestamp": "2026-03-01T13:39:34.983Z",
-    "commit": "30cc3ca",
+    "session_id": "t017-refresh-handoff-docs-2026-03-19",
+    "timestamp": "2026-03-19T05:50:00.000Z",
+    "commit": "(pending)",
     "phase": "implementation",
-    "duration_minutes": 2
+    "duration_minutes": 10
   },
   "files": {
     "STATUS.md": {
       "checksum": "sha256:(pending)",
-      "updated": "2026-02-27T22:00:00Z",
-      "lines": 91,
-      "summary": "v0.2.0 packaged. Build health verified. 72 tests. 9 gaps mapped to task IDs. 5 components assumed."
+      "updated": "2026-03-19T05:50:00Z",
+      "lines": 90,
+      "summary": "v0.3.0. 248 unit tests (14 suites) + 26 integration tests. All components with correct test counts. chat-participant, context-injector, task-filter, task-tree, agent-retry, agent-log promoted to verified."
     },
     "NEXT_ACTIONS.md": {
       "checksum": "sha256:(pending)",
-      "updated": "2026-02-28T00:48:00Z",
-      "lines": 150,
-      "summary": "1 open task: filtering (T-011). 11 done."
+      "updated": "2026-03-19T05:50:00Z",
+      "lines": 160,
+      "summary": "17 done, 4 ready (T-018/T-019/T-020/T-021), 0 blocked, 1 pending (T-003). T-017 done, T-021 unblocked."
     },
     "LOG.md": {
       "checksum": "sha256:(pending)",
-      "updated": "2026-02-27T22:00:00Z",
-      "lines": 90,
-      "summary": "3 sessions: task audit (2026-02-27), CI pipeline T-001 (2026-02-27), bootstrap (2026-02-27)."
+      "updated": "2026-03-19T05:50:00Z",
+      "lines": 150,
+      "summary": "5 sessions: T-017 handoff refresh (2026-03-19), T-015 GitHub links (2026-03-01), CHANGELOG (2026-02-27), task audit (2026-02-27), CI pipeline (2026-02-27)."
     },
     "DASHBOARD.md": {
       "checksum": "sha256:(pending)",
-      "updated": "2026-02-27T22:00:00Z",
-      "lines": 110,
-      "summary": "9 components with test counts. 72 tests across 5 suites. 9 open tasks (6 ready, 3 blocked). T-004 + T-005 are next."
+      "updated": "2026-03-19T05:50:00Z",
+      "lines": 120,
+      "summary": "16 components with current test counts. 248 unit + 26 integration tests. 4 open tasks (T-018/T-019/T-020/T-021)."
     },
     "TRUST.md": {
       "checksum": "sha256:(pending)",
-      "updated": "2026-02-27T14:09:01.402Z",
-      "lines": 65,
-      "summary": "7 verified components (reader, spawner, monitor, statusbar, security, CI, .vsix). 5 assumed (chat, injector, commands, sidebar, lifecycle)."
+      "updated": "2026-03-19T05:50:00Z",
+      "lines": 90,
+      "summary": "All components updated. 12 verified (reader, spawner, retry, log, monitor, statusbar, filter, tree, chat, injector, commands-partial, security, integration). 2 assumed (sidebar rendering, commands-rest)."
     },
     "CONVENTIONS.md": {
       "checksum": "sha256:(pending)",
@@ -53,7 +53,7 @@
       "summary": "5-phase AAHP pipeline. VS Code extension specific: webview CSP, try/catch, vsce package notes."
     }
   },
-  "quick_context": "aahp-orchestrator v0.3.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Marketplace-ready with icon, metadata, and publish script. 248 unit tests (14 suites) + 26 integration tests (@vscode/test-electron, 5 suites), CI pipeline with xvfb integration tests, tag-triggered release workflow. Dashboard has aggregated task filtering (status/priority/repo) and sorting with nested batch rendering for atomic updates. All Open Tasks tree view has inline GitHub link buttons and enhanced tooltips with issue numbers. GitHub issue sync auto-imports issues into MANIFEST. To publish: set VSCE_PAT and run npm run publish or push a v* tag.",
+  "quick_context": "aahp-orchestrator v0.3.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Marketplace-ready with icon, metadata, and publish script. 248 unit tests (14 suites) + 26 integration tests (@vscode/test-electron, 5 suites). All components verified: aahp-reader (40), chat-participant (45), context-injector (13), agent-spawner (15), agent-retry (12), agent-log (16), session-monitor (20), task-filter (31), task-tree (19), commands-createTask (14), commands-github (7), statusbar (4), security (8), sidebar-links (4). Dashboard has aggregated task filtering, GitHub inline buttons in tree view, and atomic batch rendering for startup. Open tasks: T-018 (sidebar tests), T-019 (commands tests), T-020 (atomic writes), T-021 (CLAUDE.md). To publish: set VSCE_PAT and run npm run publish or push a v* tag.",
   "token_budget": {
     "manifest_only": 80,
     "manifest_plus_core": 1200,
@@ -223,12 +223,13 @@
     },
     "T-017": {
       "title": "Refresh stale handoff documentation [high]",
-      "status": "ready",
+      "status": "done",
       "priority": "high",
       "depends_on": [],
       "created": "2026-03-02T03:31:07.797Z",
       "github_issue": 7,
-      "github_repo": "homeofe/aahp-orchestrator"
+      "github_repo": "homeofe/aahp-orchestrator",
+      "completed": "2026-03-19T05:50:00.000Z"
     },
     "T-018": {
       "title": "Unit tests for sidebar webview provider [medium]",

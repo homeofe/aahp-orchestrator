@@ -6,6 +6,31 @@
 
 ---
 
+## 2026-03-19 Claude Code: Refresh stale handoff documentation (T-017)
+
+**Agent:** Claude Code (claude-sonnet-4-6)
+**Phase:** implementation
+**Branch:** main
+**Task:** T-017
+
+### What was done
+
+- Cloned fresh, ran `npm test` to confirm 248 unit tests (14 suites) + reviewed integration count (26 tests, 5 suites)
+- Checked open GitHub issues: #7 (T-017), #8 (T-018), #9 (T-019), #10 (T-020), #11 (T-021), #6 (T-003 pending)
+- Rewrote `STATUS.md`: updated to v0.3.0, 248 unit + 26 integration tests, all components with correct test counts, promoted chat-participant/context-injector/task-filter/task-tree/agent-retry/agent-log from "assumed" to "verified"
+- Rewrote `TRUST.md`: every component row updated with current test counts and verified status; added new components (agent-retry, agent-log, task-filter, task-tree, commands-createTask, commands-github)
+- Rewrote `DASHBOARD.md`: all 16 component rows updated, test suite table expanded to 15 rows, pipeline state and open/completed task tables refreshed
+- Rewrote `NEXT_ACTIONS.md`: T-017 moved to done, T-021 unblocked (T-017 dependency satisfied), status summary updated to 17 done / 4 ready / 0 blocked / 1 pending
+- Updated `MANIFEST.json`: T-017 marked done, file summaries updated, quick_context refreshed, last_session updated
+
+### Decisions made
+
+- T-021 (CLAUDE.md) was listed as "depends on T-017" in prior MANIFEST - now unblocked and added to Ready section
+- TRUST.md was almost entirely stale (based on v0.2.0 with 72 tests); fully rewritten rather than patched
+- Kept LOG.md append-only as per convention
+
+---
+
 ## 2026-02-27 Claude Code: Add CHANGELOG.md (T-004)
 
 **Agent:** Claude Code (claude-opus-4-6)
