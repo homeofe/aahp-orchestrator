@@ -16,6 +16,7 @@ import { SessionMonitor } from './session-monitor'
 import { AahpDashboardProvider } from './sidebar'
 import { FlatTask, TaskTreeProvider, flattenOpenTasks } from './task-tree'
 import { AgentLogStore, AgentLogEntry } from './agent-log'
+import { atomicWriteJsonSync } from './atomic-write'
 const PHASES = ['research', 'architecture', 'implementation', 'review', 'fix', 'release']
 
 /** Current agent runs reference for cancellation (updated by onAgentRuns callback) */
@@ -455,7 +456,7 @@ export function registerCommands(
           }
 
           if (repoChanged) {
-            fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8')
+            atomicWriteJsonSync(manifestPath, manifest)
             changedRepos++
           }
         } catch {
@@ -490,7 +491,7 @@ export function registerCommands(
           if (newStatus === 'done') {
             manifest.tasks[taskId].completed = new Date().toISOString()
           }
-          fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8')
+          atomicWriteJsonSync(manifestPath, manifest)
           reloadCtx()
           vscode.window.showInformationMessage(`AAHP: ${taskId} -> ${newStatus}`)
         }
@@ -774,7 +775,7 @@ export function registerCommands(
         const manifest = JSON.parse(raw)
         if (manifest.tasks?.[element.taskId]) {
           manifest.tasks[element.taskId].priority = picked
-          fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8')
+          atomicWriteJsonSync(manifestPath, manifest)
           reloadCtx()
           vscode.window.showInformationMessage(`AAHP: ${element.taskId} priority -> ${picked}`)
         }
@@ -878,7 +879,7 @@ export function registerCommands(
         }
         manifest.next_task_id = nextId + 1
 
-        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8')
+        atomicWriteJsonSync(manifestPath, manifest)
         reloadCtx()
         vscode.window.showInformationMessage(`AAHP: Created ${taskId} - ${title.trim()}`)
       } catch (err) {

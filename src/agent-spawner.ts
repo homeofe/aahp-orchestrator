@@ -4,6 +4,7 @@ import * as path from 'path'
 import { spawn, ChildProcess } from 'child_process'
 import { SessionMonitor, QueuedTask } from './session-monitor'
 import { AgentLogStore } from './agent-log'
+import { atomicWriteJson } from './atomic-write'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -899,7 +900,7 @@ async function markManifestDone(repo: RepoTask, backend: AgentBackend): Promise<
       agent: backend === 'claude' ? 'claude-code' : 'github-copilot',
       timestamp: new Date().toISOString(),
     }
-    await fs.promises.writeFile(repo.manifestPath, JSON.stringify(manifest, null, 2), 'utf8')
+    await atomicWriteJson(repo.manifestPath, manifest)
   } catch { /* best-effort */ }
 }
 

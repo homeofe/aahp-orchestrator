@@ -4,6 +4,7 @@ import * as path from 'path'
 import * as os from 'os'
 import * as crypto from 'crypto'
 import { execSync, spawnSync } from 'child_process'
+import { atomicWriteJsonSync } from './atomic-write'
 
 // ── GitHub issue sync ─────────────────────────────────────────────────────────
 
@@ -234,7 +235,7 @@ function fetchAndSyncGitHubIssues(
   if (!changed) return manifest
 
   const updated: AahpManifest = { ...manifest, tasks, next_task_id: nextId }
-  fs.writeFileSync(path.join(handoffDir, 'MANIFEST.json'), JSON.stringify(updated, null, 2) + '\n', 'utf8')
+  atomicWriteJsonSync(path.join(handoffDir, 'MANIFEST.json'), updated)
   return updated
 }
 
@@ -328,7 +329,7 @@ function createMissingGitHubIssues(
 
   if (!changed) return manifest
   const updated: AahpManifest = { ...manifest, tasks }
-  fs.writeFileSync(path.join(handoffDir, 'MANIFEST.json'), JSON.stringify(updated, null, 2) + '\n', 'utf8')
+  atomicWriteJsonSync(path.join(handoffDir, 'MANIFEST.json'), updated)
   return updated
 }
 
@@ -394,11 +395,7 @@ function syncNextActionsToManifest(
 
   if (!changed) return manifest
   const updatedManifest: AahpManifest = { ...manifest, tasks, next_task_id: nextId }
-  fs.writeFileSync(
-    path.join(handoffDir, 'MANIFEST.json'),
-    JSON.stringify(updatedManifest, null, 2) + '\n',
-    'utf8'
-  )
+  atomicWriteJsonSync(path.join(handoffDir, 'MANIFEST.json'), updatedManifest)
   return updatedManifest
 }
 
@@ -927,5 +924,5 @@ export function refreshManifestChecksums(ctx: AahpContext): AahpManifest {
 /** Persist updated manifest back to disk */
 export function saveManifest(ctx: AahpContext, manifest: AahpManifest): void {
   const p = path.join(ctx.handoffDir, 'MANIFEST.json')
-  fs.writeFileSync(p, JSON.stringify(manifest, null, 2) + '\n', 'utf8')
+  atomicWriteJsonSync(p, manifest)
 }

@@ -2,6 +2,7 @@ import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
+import { atomicWriteJsonSync } from './atomic-write'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -182,12 +183,10 @@ export class SessionMonitor {
 
   private _writeLockFile(sessions: ActiveSession[]): void {
     try {
-      const dir = path.dirname(LOCK_FILE)
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-      fs.writeFileSync(LOCK_FILE, JSON.stringify({
+      atomicWriteJsonSync(LOCK_FILE, {
         updatedAt: new Date().toISOString(),
         sessions,
-      }, null, 2), 'utf8')
+      })
     } catch { /* best-effort — lock file is informational only */ }
   }
 
