@@ -200,8 +200,10 @@ export function buildAgentPrompt(repo: RepoTask): string {
     const nextActionsPath = path.join(path.dirname(repo.manifestPath), 'NEXT_ACTIONS.md')
     try {
       const md = fs.readFileSync(nextActionsPath, 'utf8')
+      // Escape backslashes first, then special regex chars (order matters)
+      const safeTaskId = repo.taskId.replace(/\\/g, '\\\\').replace(/[-]/g, '\\$&')
       const re = new RegExp(
-        `### ${repo.taskId.replace(/[-]/g, '\\$&')}[:\\s].*?(?=\\n### T-\\d|\\n---\\n|\\n## |$)`,
+        `### ${safeTaskId}[:\\s].*?(?=\\n### T-\\d|\\n---\\n|\\n## |$)`,
         's'
       )
       const m = md.match(re)

@@ -23,7 +23,8 @@ const PHASES = ['research', 'architecture', 'implementation', 'review', 'fix', '
 let currentAgentRuns: AgentRun[] = []
 
 function quoteCliArg(value: string): string {
-  return `"${value.replace(/"/g, '\\"')}"`
+  // Escape backslashes first, then double-quotes (order matters to avoid double-escaping)
+  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
 }
 
 function launchRunner(cwd: string, args: string[], terminalName: string): void {
@@ -701,8 +702,10 @@ export function registerCommands(
         if (fs.existsSync(nextActionsPath)) {
           const nextActionsMd = fs.readFileSync(nextActionsPath, 'utf8')
           // Extract the section for this task ID
+          // Escape backslashes first, then special regex chars (order matters)
+          const safeTaskId = taskId.replace(/\\/g, '\\\\').replace(/[-]/g, '\\$&')
           const taskSectionRegex = new RegExp(
-            `### ${taskId.replace(/[-]/g, '\\$&')}[:\\s].*?(?=\\n### T-\\d|\\n---\\n|\\n## |$)`,
+            `### ${safeTaskId}[:\\s].*?(?=\\n### T-\\d|\\n---\\n|\\n## |$)`,
             's'
           )
           const match = nextActionsMd.match(taskSectionRegex)
