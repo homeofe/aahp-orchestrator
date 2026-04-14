@@ -413,6 +413,6 @@
     "mocha": "^11.3.0",
     "typescript": "^5.5.0",
     "typescript-eslint": "^8.58.0",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.4"
   }
 }
