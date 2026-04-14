@@ -13,6 +13,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration tests with VS Code extension host (T-010)
 - Dashboard task filtering and sorting (T-011)
 
+## [0.3.1] - 2026-04-14
+
+### Security
+
+- Bumped `lodash` to 4.18.1 - fixes prototype pollution via array path bypass
+  (medium) and code injection via `_.template` imports key names (high)
+- Bumped `vite` to 8.0.5 - fixes path traversal in optimized deps `.map` handling
+  (medium), arbitrary file read via dev server WebSocket (high), and
+  `server.fs.deny` bypass with queries (high)
+- Added `overrides.serialize-javascript` to 7.0.5 - fixes CPU exhaustion DoS via
+  crafted array-like objects (medium) and RCE via `RegExp.flags` and
+  `Date.prototype.toISOString()` (high)
+- Added `overrides.diff` to 8.0.4 - fixes jsdiff DoS vulnerability in `parsePatch`
+  and `applyPatch` (low)
+- Applied `npm audit fix` to resolve transitive `brace-expansion` moderate severity
+  vulnerability - result: 0 vulnerabilities
+
+### Changed
+
+- Bumped `eslint` to 10.2.0
+- Bumped `typescript-eslint` to 8.58.0
+- Bumped `@types/node` to 25.5.2
+- Bumped `vitest` to 4.1.2
+
 ## [0.3.0] - 2026-02-28
 
 ### Added
@@ -92,7 +116,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Removed em dashes from all source files and documentation (style convention)
 
-[unreleased]: https://github.com/homeofe/aahp-orchestrator/compare/v0.3.0...HEAD
+[unreleased]: https://github.com/homeofe/aahp-orchestrator/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/homeofe/aahp-orchestrator/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/homeofe/aahp-orchestrator/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/homeofe/aahp-orchestrator/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/homeofe/aahp-orchestrator/releases/tag/v0.1.0
