@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration tests with VS Code extension host (T-010)
 - Dashboard task filtering and sorting (T-011)
 
+## [0.3.2] - 2026-04-14
+
+### Changed
+
+- Bumped `typescript` to 6.0.2 (major upgrade from 5.9.3)
+- Added `"types": ["node"]` to `tsconfig.json` - required for TypeScript 6 which no
+  longer auto-includes `@types/node`; harmless on TypeScript 5
+
 ## [0.3.1] - 2026-04-14
 
 ### Security
@@ -116,7 +124,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Removed em dashes from all source files and documentation (style convention)
 
-[unreleased]: https://github.com/homeofe/aahp-orchestrator/compare/v0.3.1...HEAD
+[unreleased]: https://github.com/homeofe/aahp-orchestrator/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/homeofe/aahp-orchestrator/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/homeofe/aahp-orchestrator/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/homeofe/aahp-orchestrator/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/homeofe/aahp-orchestrator/compare/v0.1.0...v0.2.0
