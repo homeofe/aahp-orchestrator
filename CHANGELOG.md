@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration tests with VS Code extension host (T-010)
 - Dashboard task filtering and sorting (T-011)
 
+## [0.3.7] - 2026-04-25
+
+### Security
+
+- Fixed `postcss <8.5.10` XSS vulnerability (GHSA-qx2v-qp2m-jg93) via lockfile update
+- Fixed `uuid <14.0.0` buffer bounds vulnerability (GHSA-w5hq-g745-h8pq) via `overrides.uuid >=14.0.0`
+
 ## [0.3.6] - 2026-04-25
 
 ### Changed
