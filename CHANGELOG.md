@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration tests with VS Code extension host (T-010)
 - Dashboard task filtering and sorting (T-011)
 
+## [0.3.5] - 2026-04-25
+
+### Fixed
+
+- Bumped `engines.vscode` from `^1.90.0` to `^1.116.0` to match `@types/vscode ^1.116.0`
+  (CI was failing with "engines.vscode must be >= @types/vscode version")
+- Bumped `postcss` transitive dep to 8.5.10 via lockfile update (#31)
+
 ## [0.3.4] - 2026-04-25
 
 ### Fixed
