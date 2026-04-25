@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration tests with VS Code extension host (T-010)
 - Dashboard task filtering and sorting (T-011)
 
+## [0.3.6] - 2026-04-25
+
+### Changed
+
+- Updated README: VS Code badge/requirement ^1.90 -> ^1.116, license MIT -> Apache-2.0
+- Updated README: `aahp.agentBackend` setting documents all 6 backends (auto/claude/gemini/codex/copilot/sdk)
+- Updated README: Requirements section lists all agent CLI install options
+- Updated README: Toolchain table mentions Gemini/Codex/Copilot backends in aahp-runner description
+- Updated README: .vsix install example uses current version
+
 ## [0.3.5] - 2026-04-25
 
 ### Fixed

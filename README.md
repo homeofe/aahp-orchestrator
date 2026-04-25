@@ -3,9 +3,9 @@
 > VS Code extension - orchestrate GitHub Copilot and Claude Code with AAHP v3 context. Zero questions. Full context. Both agents know what to do.
 
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/elvatis.aahp-orchestrator?label=Marketplace)](https://marketplace.visualstudio.com/items?itemName=elvatis.aahp-orchestrator)
-[![VS Code](https://img.shields.io/badge/VS%20Code-%5E1.90-blue)](https://code.visualstudio.com/)
+[![VS Code](https://img.shields.io/badge/VS%20Code-%5E1.116-blue)](https://code.visualstudio.com/)
 [![AAHP v3](https://img.shields.io/badge/AAHP-v3-green)](https://github.com/homeofe/AAHP)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ## The AAHP Toolchain
 
@@ -14,7 +14,7 @@
 | Package | What it does | When to use |
 |---------|-------------|-------------|
 | **aahp-orchestrator** - you are here | VS Code extension. Injects AAHP context into Copilot/Claude Code while *you* code. Live status bar, `@aahp` chat, sidebar dashboard. | Every coding session - your human-in-the-loop assistant. |
-| **[aahp-runner](https://github.com/homeofe/aahp-runner)** | Autonomous CLI. Spawns Claude agents that implement tasks, run tests, and commit - no human input needed. Schedulable. | Overnight / CI - your unattended worker. |
+| **[aahp-runner](https://github.com/homeofe/aahp-runner)** | Autonomous CLI. Spawns Claude / Gemini / Codex / Copilot agents that implement tasks, run tests, and commit - no human input needed. Schedulable. | Overnight / CI - your unattended worker. |
 
 Together they cover the full AAHP loop: you plan and guide during the day - the runner works through tasks at night - you wake up to committed progress.
 
@@ -157,7 +157,7 @@ When you launch a task that has unresolved dependencies (`depends_on` in MANIFES
 | `aahp.developmentRoot` | boolean | `false` | Enable multi-repo mode: scans all subdirectories for `.ai/handoff/MANIFEST.json` |
 | `aahp.rootFolderPath` | string | `""` | Override the root path to scan for repos (default: workspace root) |
 | `aahp.suppressRootPrompt` | boolean | `false` | Suppress the initial prompt asking about development root mode |
-| `aahp.agentBackend` | enum | `"auto"` | Agent backend: `auto` (priority-based: high-priority tasks route to Claude Code, medium/low to Copilot), `claude`, or `copilot` |
+| `aahp.agentBackend` | enum | `"auto"` | Agent backend for spawning agents. Options: `auto` (claude > gemini > codex > copilot > sdk), `claude`, `gemini`, `codex`, `copilot`, `sdk` |
 | `aahp.agentConcurrencyLimit` | number | `0` | Max parallel agents when running all repos (0 = unlimited) |
 | `aahp.agentMaxRetries` | number | `1` | Max retry attempts on agent failure (uses exponential backoff) |
 
@@ -198,16 +198,21 @@ code --install-extension elvatis.aahp-orchestrator
 
 Download the latest `.vsix` from [GitHub Releases](https://github.com/homeofe/aahp-orchestrator/releases), then:
 ```bash
-code --install-extension aahp-orchestrator-0.3.0.vsix
+code --install-extension aahp-orchestrator-0.3.5.vsix
 ```
 
 ---
 
 ## Requirements
 
-- VS Code >= 1.90
-- A workspace with `.ai/handoff/MANIFEST.json` ([AAHP v3 spec](https://github.com/homeofe/AAHP))
-- GitHub Copilot extension (for `@aahp` chat responses via LM API) or Claude Code extension
+- VS Code >= 1.116
+- A workspace with `.ai/handoff/MANIFEST.json` - create one with [`aahp init`](https://github.com/homeofe/aahp-runner) from aahp-runner
+- At least one agent CLI for spawning agents:
+  - `npm install -g @anthropic-ai/claude-code` (Claude Code CLI)
+  - `npm install -g @google/gemini-cli` (Gemini CLI)
+  - `npm install -g @openai/codex` (Codex CLI)
+  - `gh auth login` with a Copilot subscription
+- GitHub Copilot or Claude Code extension for the `@aahp` chat participant
 
 ---
 
@@ -240,4 +245,4 @@ Or via CI: push a `v*` tag to trigger the release workflow.
 
 ## License
 
-MIT - [elvatis](https://github.com/elvatis)
+Apache-2.0 - [elvatis](https://github.com/elvatis)
