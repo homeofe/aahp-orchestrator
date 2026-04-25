@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration tests with VS Code extension host (T-010)
 - Dashboard task filtering and sorting (T-011)
 
+## [0.3.3] - 2026-04-25
+
+### Changed
+
+- Bumped `typescript` to 6.0.3
+- Bumped `@types/node` to 25.6.0
+- Bumped `@vscode/vsce` to 3.9.1
+- Expanded `aahp.agentBackend` setting: added `gemini`, `codex`, and `sdk` options
+  to match the new backends available in aahp-runner >= 0.2.4
+
 ## [0.3.2] - 2026-04-14
 
 ### Changed
