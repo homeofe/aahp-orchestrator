@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration tests with VS Code extension host (T-010)
 - Dashboard task filtering and sorting (T-011)
 
+## [0.3.4] - 2026-04-25
+
+### Fixed
+
+- `aahp.agentBackend` description for `claude`: removed incorrect "requires VS Code extension" -
+  Claude Code is a standalone CLI: `npm install -g @anthropic-ai/claude-code`
+
 ## [0.3.3] - 2026-04-25
 
 ### Changed
