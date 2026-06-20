@@ -103,3 +103,6 @@
 - **(Verified):** Extension activation and command registration (integration tests)
 - **(Assumed):** sidebar webview rendering (beyond 4 link tests), most commands handlers, extension lifecycle deactivation
 - **(Unknown):** VS Code Marketplace publish status
+
+<!-- aahp-gate -->
+_AAHP verify gate: v3.0.2 synced 2026-06-20._

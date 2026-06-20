@@ -2,270 +2,61 @@
   "aahp_version": "3.0",
   "project": "aahp-orchestrator",
   "last_session": {
-    "agent": "claude-code",
-    "session_id": "t017-refresh-handoff-docs-2026-03-19",
-    "timestamp": "2026-03-19T05:50:00.000Z",
-    "commit": "(pending)",
-    "phase": "implementation",
-    "duration_minutes": 10
+    "agent": "cli-tool",
+    "session_id": "cli-1781964454",
+    "timestamp": "2026-06-20T14:07:35Z",
+    "commit": "580e1ee",
+    "phase": "fix",
+    "duration_minutes": 0
   },
   "files": {
     "STATUS.md": {
-      "checksum": "sha256:(pending)",
-      "updated": "2026-03-19T05:50:00Z",
-      "lines": 90,
-      "summary": "v0.3.0. 248 unit tests (14 suites) + 26 integration tests. All components with correct test counts. chat-participant, context-injector, task-filter, task-tree, agent-retry, agent-log promoted to verified."
+      "checksum": "sha256:f412bc9ee8016c4075cea6f7991890f9c7d6a7c70dfa8d03e14b4d1a09d85695",
+      "updated": "2026-06-20T14:07:33Z",
+      "lines": 108,
+      "summary": "(no summary available)"
     },
     "NEXT_ACTIONS.md": {
-      "checksum": "sha256:(pending)",
-      "updated": "2026-03-19T05:50:00Z",
-      "lines": 160,
-      "summary": "17 done, 4 ready (T-018/T-019/T-020/T-021), 0 blocked, 1 pending (T-003). T-017 done, T-021 unblocked."
+      "checksum": "sha256:53f0764b9b56892bb15ca8843a888ee563d77e41ae83f52d226826ff9734b82a",
+      "updated": "2026-04-14T10:40:13Z",
+      "lines": 161,
+      "summary": "(no summary available)"
     },
     "LOG.md": {
-      "checksum": "sha256:(pending)",
-      "updated": "2026-03-19T05:50:00Z",
-      "lines": 150,
-      "summary": "5 sessions: T-017 handoff refresh (2026-03-19), T-015 GitHub links (2026-03-01), CHANGELOG (2026-02-27), task audit (2026-02-27), CI pipeline (2026-02-27)."
+      "checksum": "sha256:1866198867e29686c18b1b3959cf2bdc05f56256d1d76ac74bd145630098f539",
+      "updated": "2026-04-14T10:40:13Z",
+      "lines": 143,
+      "summary": "(no summary available)"
     },
     "DASHBOARD.md": {
-      "checksum": "sha256:(pending)",
-      "updated": "2026-03-19T05:50:00Z",
-      "lines": 120,
-      "summary": "16 components with current test counts. 248 unit + 26 integration tests. 4 open tasks (T-018/T-019/T-020/T-021)."
+      "checksum": "sha256:98e90f05c1270e5e20668bbd43cb1a0a0913cd93b1069f110810604e6a0fc535",
+      "updated": "2026-04-14T10:40:13Z",
+      "lines": 131,
+      "summary": "(no summary available)"
     },
     "TRUST.md": {
-      "checksum": "sha256:(pending)",
-      "updated": "2026-03-19T05:50:00Z",
-      "lines": 90,
-      "summary": "All components updated. 12 verified (reader, spawner, retry, log, monitor, statusbar, filter, tree, chat, injector, commands-partial, security, integration). 2 assumed (sidebar rendering, commands-rest)."
+      "checksum": "sha256:ad6a227d8417c6d4567b03306670f93893670774acc2f47353ce3510bee08b06",
+      "updated": "2026-04-14T10:40:13Z",
+      "lines": 112,
+      "summary": "(no summary available)"
     },
     "CONVENTIONS.md": {
-      "checksum": "sha256:(pending)",
-      "updated": "2026-02-27T14:09:01.402Z",
-      "lines": 75,
-      "summary": "TypeScript strict, VS Code API rules, Three Laws, no em dashes, no direct main pushes."
+      "checksum": "sha256:c623185d1113acbc3c480d956880b2e539e5e82131e67e6405c956bb56ef4638",
+      "updated": "2026-04-14T10:40:13Z",
+      "lines": 116,
+      "summary": "(no summary available)"
     },
     "WORKFLOW.md": {
-      "checksum": "sha256:(pending)",
-      "updated": "2026-02-27T14:09:01.402Z",
-      "lines": 90,
-      "summary": "5-phase AAHP pipeline. VS Code extension specific: webview CSP, try/catch, vsce package notes."
+      "checksum": "sha256:308f72affaf98d060daf61aa18465a196d11e348e2f027ee3dc2965b8776dd99",
+      "updated": "2026-04-14T10:40:13Z",
+      "lines": 151,
+      "summary": "﻿# aahp-orchestrator: Autonomous Multi-Agent Workflow"
     }
   },
-  "quick_context": "aahp-orchestrator v0.3.0: VS Code extension that injects AAHP context into Copilot and Claude Code. Marketplace-ready with icon, metadata, and publish script. 248 unit tests (14 suites) + 26 integration tests (@vscode/test-electron, 5 suites). All components verified: aahp-reader (40), chat-participant (45), context-injector (13), agent-spawner (15), agent-retry (12), agent-log (16), session-monitor (20), task-filter (31), task-tree (19), commands-createTask (14), commands-github (7), statusbar (4), security (8), sidebar-links (4). Dashboard has aggregated task filtering, GitHub inline buttons in tree view, and atomic batch rendering for startup. Open tasks: T-018 (sidebar tests), T-019 (commands tests), T-020 (atomic writes), T-021 (CLAUDE.md). To publish: set VSCE_PAT and run npm run publish or push a v* tag.",
+  "quick_context": "(no summary available) (no summary available) ",
   "token_budget": {
-    "manifest_only": 80,
-    "manifest_plus_core": 1200,
-    "full_read": 5000
-  },
-  "next_task_id": 22,
-  "tasks": {
-    "T-001": {
-      "title": "Add GitHub Actions CI pipeline",
-      "status": "done",
-      "priority": "high",
-      "depends_on": [],
-      "created": "2026-02-27T14:09:01.402Z",
-      "completed": "2026-02-27T14:24:49.503Z"
-    },
-    "T-002": {
-      "title": "Add automated tests",
-      "status": "done",
-      "priority": "high",
-      "depends_on": [],
-      "created": "2026-02-27T14:09:01.402Z",
-      "completed": "2026-02-27T15:36:00Z"
-    },
-    "T-003": {
-      "title": "Publish to VS Code Marketplace",
-      "status": "pending",
-      "priority": "low",
-      "depends_on": [
-        "T-004"
-      ],
-      "created": "2026-02-27T14:09:01.402Z",
-      "notes": "Needs VSCE_PAT GitHub Actions secret from project owner. T-004 dependency is done but still requires human to provide VSCE_PAT.",
-      "completed": "2026-02-27T23:49:21.664Z",
-      "github_repo": "homeofe/aahp-orchestrator",
-      "github_issue": 6
-    },
-    "T-004": {
-      "title": "Add CHANGELOG.md",
-      "status": "done",
-      "priority": "high",
-      "depends_on": [],
-      "created": "2026-02-27T22:00:00Z",
-      "notes": "Required for VS Code Marketplace. Document v0.1.0 and v0.2.0 changes.",
-      "completed": "2026-02-27T22:41:38.476Z"
-    },
-    "T-005": {
-      "title": "Aggregated all-repos open task view in sidebar",
-      "status": "done",
-      "priority": "high",
-      "depends_on": [],
-      "created": "2026-02-27T22:00:00Z",
-      "notes": "Add a unified 'All Open Tasks' section to the sidebar dashboard that lists open/ready/in_progress tasks across all scanned repos, sorted by priority.",
-      "completed": "2026-02-27T22:48:00.483Z"
-    },
-    "T-006": {
-      "title": "Add task creation from dashboard",
-      "status": "done",
-      "priority": "medium",
-      "depends_on": [],
-      "created": "2026-02-27T22:00:00Z",
-      "notes": "Currently can only change task status via dropdown. Add 'New Task' button/command that creates a task in MANIFEST.json with title, priority, and optional depends_on.",
-      "completed": "2026-02-27T22:54:22.513Z"
-    },
-    "T-007": {
-      "title": "Agent retry on failure with backoff",
-      "status": "done",
-      "priority": "medium",
-      "depends_on": [],
-      "created": "2026-02-27T22:00:00Z",
-      "notes": "When an agent fails (status=failed), offer a retry button in the dashboard. Add configurable max retries (default 1) with exponential backoff.",
-      "completed": "2026-02-27T23:08:55.376Z"
-    },
-    "T-008": {
-      "title": "GitHub release workflow (tag-triggered)",
-      "status": "done",
-      "priority": "medium",
-      "depends_on": [
-        "T-004"
-      ],
-      "created": "2026-02-27T22:00:00Z",
-      "notes": "Add .github/workflows/release.yml triggered on 'git tag v*'. Build .vsix, create GitHub release with asset, optionally publish to Marketplace.",
-      "completed": "2026-02-28T12:50:40.576Z"
-    },
-    "T-009": {
-      "title": "Test chat-participant and context-injector",
-      "status": "done",
-      "priority": "medium",
-      "depends_on": [],
-      "created": "2026-02-27T22:00:00Z",
-      "notes": "chat-participant and context-injector are 'assumed' - no unit tests. Add tests for slash command handlers (help, status, tasks, next, done, phase) and context clipboard copy.",
-      "completed": "2026-02-28T13:51:49.918Z"
-    },
-    "T-010": {
-      "title": "Integration tests with VS Code extension host",
-      "status": "done",
-      "priority": "low",
-      "depends_on": [],
-      "created": "2026-02-27T22:00:00Z",
-      "notes": "Set up @vscode/test-electron for integration tests that run inside a real VS Code instance. Test activation, command registration, webview rendering.",
-      "completed": "2026-02-28T14:49:36.754Z"
-    },
-    "T-011": {
-      "title": "Dashboard task filtering and sorting",
-      "status": "done",
-      "priority": "low",
-      "depends_on": [
-        "T-005"
-      ],
-      "created": "2026-02-27T22:00:00Z",
-      "notes": "Add filter controls to the aggregated task view: filter by status (ready/blocked/done), by priority (high/medium/low), by repo. Sort by priority then age.",
-      "completed": "2026-02-28T15:15:31.247Z"
-    },
-    "T-012": {
-      "title": "T-010: Integration tests with VS Code extension host",
-      "status": "done",
-      "priority": "medium",
-      "depends_on": [],
-      "created": "2026-02-28T18:15:06.184Z",
-      "notes": "Set up real VS Code extension host tests using `@vscode/test-electron`.\n\nVerify the extension actually activates, registers commands, and renders webviews.\n\n**From AAHP NEXT_ACTIONS**",
-      "github_issue": 4,
-      "github_repo": "homeofe/aahp-orchestrator",
-      "completed": "2026-02-28T18:20:50.994Z"
-    },
-    "T-013": {
-      "title": "T-009: Test chat-participant and context-injector",
-      "status": "done",
-      "priority": "medium",
-      "depends_on": [],
-      "created": "2026-02-28T18:15:06.184Z",
-      "notes": "Add unit tests for the two untested modules:\n\n- `chat-participant.ts` has 7 slash command handlers\n- `context-injector.ts` registers clipboard copy + one-time banner\n- At least 15 tests for chat-participant, 5 for context-injector\n\n**From AAHP NEXT_ACTIONS**",
-      "github_issue": 3,
-      "github_repo": "homeofe/aahp-orchestrator",
-      "completed": "2026-02-28T18:29:22.513Z"
-    },
-    "T-014": {
-      "title": "Bug: Dashboard first render incomplete + intermittent missing aahp.refreshAll command",
-      "status": "done",
-      "priority": "low",
-      "depends_on": [],
-      "created": "2026-03-01T12:58:44.329Z",
-      "notes": "## Summary\nOn VS Code startup, the AAHP dashboard often renders in a degraded single-project state (only `PROJECT` section for one repo).\nAfter running `AAHP: Refresh Dashboard`, the dashboard switches to the expected multi-repo layout (`REPOS`, `ALL OPEN TASKS`, metrics/cards across many repos).\n\nIn affected sessions, running `AAHP: Refresh Dashboard` from Command Palette can also fail with:\n`command 'aahp.refreshAll' not found`.\n\n## Impact\n- Startup UX is inconsistent and misleading.\n- Users m",
-      "github_issue": 5,
-      "github_repo": "homeofe/aahp-orchestrator",
-      "completed": "2026-03-01T13:18:23.079Z"
-    },
-    "T-015": {
-      "title": "Add GitHub links to All Open Tasks tree view",
-      "status": "done",
-      "priority": "medium",
-      "depends_on": [],
-      "created": "2026-03-01T12:58:44.331Z",
-      "notes": "## Problem\n\nThe **Dashboard** webview has GitHub links (GH badges) next to repos and tasks, making it easy to jump to GitHub Issues. However, the **All Open Tasks** tree view in the sidebar has no GitHub links at all.\n\nUsers need quick access to GitHub from every task - not just from the dashboard panel.\n\n## Expected Behavior\n\nEach task item in the \"All Open Tasks\" tree view should have an inline action button (icon) that opens the corresponding GitHub Issues search for that task ID. This should",
-      "github_issue": 2,
-      "github_repo": "homeofe/aahp-orchestrator",
-      "completed": "2026-03-01T13:39:34.983Z"
-    },
-    "T-016": {
-      "title": "Dashboard requires manual refresh after VS Code startup",
-      "status": "done",
-      "priority": "high",
-      "depends_on": [],
-      "created": "2026-03-01T12:58:44.331Z",
-      "notes": "## Priority: HIGH\n\n## Problem\n\nEvery time VS Code starts, the AAHP Dashboard does not automatically refresh. The user must manually trigger a refresh via:\n\n1. Press `Ctrl+Shift+P` to open the Command Palette\n2. Type `AAHP: Refresh Dashboard`\n3. Execute the command\n\nThis is disruptive to the workflow and should not be necessary on every startup.\n\n## Expected Behavior\n\nThe dashboard should automatically refresh/initialize when VS Code starts (or when the extension activates). No manual interventio",
-      "github_issue": 1,
-      "github_repo": "homeofe/aahp-orchestrator",
-      "completed": "2026-03-01T14:20:00.000Z"
-    },
-    "T-017": {
-      "title": "Refresh stale handoff documentation [high]",
-      "status": "done",
-      "priority": "high",
-      "depends_on": [],
-      "created": "2026-03-02T03:31:07.797Z",
-      "github_issue": 7,
-      "github_repo": "homeofe/aahp-orchestrator",
-      "completed": "2026-03-19T05:50:00.000Z"
-    },
-    "T-018": {
-      "title": "Unit tests for sidebar webview provider [medium]",
-      "status": "ready",
-      "priority": "medium",
-      "depends_on": [],
-      "created": "2026-03-02T03:31:07.797Z",
-      "github_issue": 8,
-      "github_repo": "homeofe/aahp-orchestrator"
-    },
-    "T-019": {
-      "title": "Unit tests for commands module [medium]",
-      "status": "ready",
-      "priority": "medium",
-      "depends_on": [],
-      "created": "2026-03-02T03:31:07.799Z",
-      "github_issue": 9,
-      "github_repo": "homeofe/aahp-orchestrator"
-    },
-    "T-020": {
-      "title": "Atomic file writes for manifest and session data [low]",
-      "status": "ready",
-      "priority": "low",
-      "depends_on": [],
-      "created": "2026-03-02T03:31:07.800Z",
-      "github_issue": 10,
-      "github_repo": "homeofe/aahp-orchestrator"
-    },
-    "T-021": {
-      "title": "Create project-specific CLAUDE.md [low]",
-      "status": "blocked",
-      "priority": "low",
-      "depends_on": [],
-      "created": "2026-03-02T03:31:07.800Z",
-      "github_issue": 11,
-      "github_repo": "homeofe/aahp-orchestrator"
-    }
+    "manifest_only": 85,
+    "manifest_plus_core": 3190,
+    "full_read": 8961
   }
 }
