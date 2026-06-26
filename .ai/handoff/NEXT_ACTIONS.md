@@ -20,7 +20,7 @@
 
 ## Ready - Work These Next
 
-### T-018: Unit tests for sidebar webview provider [medium] (issue #8)
+### T-018: Unit tests for sidebar webview provider [medium] (issue #45)
 
 - **Goal:** Add unit tests for the largest untested source file - `sidebar.ts` (1567 lines, currently only 4 link-related tests in sidebar-links.test.ts).
 - **Context:** The sidebar webview provider handles HTML rendering, message passing, batch update logic, filter state, collapsible sections, dashboard data binding, and cron run display. It is marked "assumed" in TRUST.md. The dashboard is the primary UI surface of the extension, making this the biggest test coverage gap.
@@ -42,7 +42,7 @@
   - [ ] HTML generation produces valid structure with CSP nonce
   - [ ] Sidebar promoted from "assumed" to "verified" in TRUST.md
 
-### T-019: Unit tests for commands module [medium] (issue #9)
+### T-019: Unit tests for commands module [medium] (issue #46)
 
 - **Goal:** Add unit tests for untested command handlers in `commands.ts` (956 lines, only 21 tests cover createTask and GitHub commands).
 - **Context:** The commands module registers 21 VS Code commands. Only `createTask` (14 tests) and GitHub-related commands (7 tests) are tested. The remaining ~15 handlers - including `setPhase`, `setTaskStatus`, `setTaskPriority`, `launchTask`, `runAll`, `runSingleRepo`, `markTaskDone`, `fixTask`, `commitSession`, `copyContext`, `openAgentHistory`, `cancelAgent`, `focusRepo`, `retryAgent` - have no unit tests. This module is marked "assumed" in TRUST.md.
@@ -63,7 +63,7 @@
   - [ ] Agent spawn/cancel commands are tested
   - [ ] Commands module promoted from "assumed" to "verified" in TRUST.md
 
-### T-020: Atomic file writes for manifest and session data [low] (issue #10)
+### T-020: Atomic file writes for manifest and session data [low] (issue #47)
 
 - **Goal:** Prevent data corruption by using write-to-temp-then-rename for MANIFEST.json and sessions.json writes.
 - **Context:** `saveManifest()` in aahp-reader.ts and session writes in session-monitor.ts use `fs.promises.writeFile()` directly. If the process crashes mid-write or the file is on a network-mapped drive (e.g., Nextcloud, SMB), the file can be left truncated or empty. This is a real risk in the project's own development environment (Nextcloud-synced directory). The fix is a standard pattern: write to a `.tmp` file in the same directory, then `fs.promises.rename()` which is atomic on most filesystems.
@@ -80,7 +80,7 @@
   - [ ] Existing tests pass without modification
   - [ ] New tests verify atomic write behavior
 
-### T-021: Create project-specific CLAUDE.md [low] (issue #11)
+### T-021: Create project-specific CLAUDE.md [low] (issue #48)
 
 - **Goal:** Add a CLAUDE.md to the project root with project-specific conventions, commands, and architecture notes.
 - **Context:** No project-level CLAUDE.md exists yet (a placeholder stub exists at repo root but is empty/minimal). Agents rely on workspace-level context which lacks aahp-orchestrator-specific information like build commands, architecture (webview provider pattern, batch rendering, multi-repo scanning), test conventions (Vitest for unit, @vscode/test-electron for integration), and the AAHP handoff protocol structure. A project CLAUDE.md reduces cold-start time for incoming agents.
