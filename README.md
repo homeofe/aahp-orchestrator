@@ -2,6 +2,9 @@
 
 > VS Code extension - orchestrate GitHub Copilot and Claude Code with AAHP v3 context. Zero questions. Full context. Both agents know what to do.
 
+[![CI](https://github.com/homeofe/aahp-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/homeofe/aahp-orchestrator/actions/workflows/ci.yml)
+[![AAHP Verify](https://github.com/homeofe/aahp-orchestrator/actions/workflows/aahp-verify.yml/badge.svg)](https://github.com/homeofe/aahp-orchestrator/actions/workflows/aahp-verify.yml)
+[![Security](https://github.com/homeofe/aahp-orchestrator/actions/workflows/codeql.yml/badge.svg)](https://github.com/homeofe/aahp-orchestrator/actions/workflows/codeql.yml)
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/elvatis.aahp-orchestrator?label=Marketplace)](https://marketplace.visualstudio.com/items?itemName=elvatis.aahp-orchestrator)
 [![VS Code](https://img.shields.io/badge/VS%20Code-%5E1.116-blue)](https://code.visualstudio.com/)
 [![AAHP v3](https://img.shields.io/badge/AAHP-v3-green)](https://github.com/homeofe/AAHP)
