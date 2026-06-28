@@ -14,6 +14,8 @@ import {
   refreshManifestChecksums,
   saveManifest,
   getWorkspaceRoot,
+  validateGitHubRepo,
+  validateLabelName,
 } from '../aahp-reader'
 import { workspace } from 'vscode'
 
@@ -556,5 +558,102 @@ describe('loadAahpContextByPath', () => {
     expect(result!.status).toBe('# Status')
     expect(result!.nextActions).toBe('# Next')
     expect(result!.conventions).toBeUndefined()
+  })
+})
+
+// ── validateGitHubRepo (security regression: findings 1 + 2) ─────────────────
+
+describe('validateGitHubRepo', () => {
+  it('accepts a well-formed owner/repo slug', () => {
+    expect(validateGitHubRepo('homeofe/aahp-orchestrator')).toBe('homeofe/aahp-orchestrator')
+    expect(validateGitHubRepo('org-name/my_repo.ts')).toBe('org-name/my_repo.ts')
+  })
+
+  it('rejects slugs with shell metacharacters (command injection prevention)', () => {
+    // Backtick command substitution
+    expect(validateGitHubRepo('attacker/repo$(touch /tmp/pwned)')).toBeNull()
+    // Semicolon chaining
+    expect(validateGitHubRepo('attacker/repo;id')).toBeNull()
+    // Pipe
+    expect(validateGitHubRepo('attacker/repo|cat /etc/passwd')).toBeNull()
+    // Backtick
+    expect(validateGitHubRepo('attacker/repo`whoami`')).toBeNull()
+    // Ampersand
+    expect(validateGitHubRepo('attacker/repo&&rm -rf /')).toBeNull()
+    // Dollar sign
+    expect(validateGitHubRepo('attacker/repo${IFS}evil')).toBeNull()
+    // Newline
+    expect(validateGitHubRepo('attacker/repo\nid')).toBeNull()
+    // Space
+    expect(validateGitHubRepo('attacker/repo evil')).toBeNull()
+  })
+
+  it('rejects leading hyphens (flag injection prevention)', () => {
+    expect(validateGitHubRepo('-owner/repo')).toBeNull()
+    expect(validateGitHubRepo('owner/-repo')).toBeNull()
+    expect(validateGitHubRepo('--help/repo')).toBeNull()
+  })
+
+  it('rejects path traversal sequences', () => {
+    expect(validateGitHubRepo('owner/../../../etc/passwd')).toBeNull()
+    expect(validateGitHubRepo('owner/repo..')).toBeNull()
+  })
+
+  it('rejects slugs with no slash separator', () => {
+    expect(validateGitHubRepo('just-a-repo')).toBeNull()
+  })
+
+  it('rejects slugs with more than one slash', () => {
+    expect(validateGitHubRepo('owner/org/repo')).toBeNull()
+  })
+
+  it('rejects empty string or non-string input', () => {
+    expect(validateGitHubRepo('')).toBeNull()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(validateGitHubRepo(null as any)).toBeNull()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(validateGitHubRepo(undefined as any)).toBeNull()
+  })
+})
+
+// ── validateLabelName (security regression: finding 3) ───────────────────────
+
+describe('validateLabelName', () => {
+  it('accepts safe label names matching GitHub label conventions', () => {
+    expect(validateLabelName('priority: high')).toBe('priority: high')
+    expect(validateLabelName('in progress')).toBe('in progress')
+    expect(validateLabelName('blocked')).toBe('blocked')
+    expect(validateLabelName('bug')).toBe('bug')
+  })
+
+  it('rejects names containing double quotes (shell escape breakout)', () => {
+    expect(validateLabelName('foo"--force --repo attacker/other')).toBeNull()
+    expect(validateLabelName('"injected"')).toBeNull()
+  })
+
+  it('rejects names containing shell metacharacters', () => {
+    expect(validateLabelName('label;evil')).toBeNull()
+    expect(validateLabelName('label|cat')).toBeNull()
+    expect(validateLabelName('label`id`')).toBeNull()
+    expect(validateLabelName('label$(id)')).toBeNull()
+    expect(validateLabelName('label&&rm')).toBeNull()
+    expect(validateLabelName('label>file')).toBeNull()
+    expect(validateLabelName('label<file')).toBeNull()
+  })
+
+  it('rejects empty string', () => {
+    expect(validateLabelName('')).toBeNull()
+  })
+
+  it('rejects names exceeding 50 characters', () => {
+    expect(validateLabelName('a'.repeat(51))).toBeNull()
+    expect(validateLabelName('a'.repeat(50))).toBe('a'.repeat(50))
+  })
+
+  it('rejects non-string input', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(validateLabelName(null as any)).toBeNull()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(validateLabelName(undefined as any)).toBeNull()
   })
 })

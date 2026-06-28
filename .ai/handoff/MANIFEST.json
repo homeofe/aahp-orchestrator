@@ -3,22 +3,22 @@
   "project": "aahp-orchestrator",
   "last_session": {
     "agent": "claude-opus-4-8",
-    "session_id": "cli-1782623979",
-    "timestamp": "2026-06-28T05:19:39Z",
-    "commit": "aa068ce",
+    "session_id": "cli-1782654297",
+    "timestamp": "2026-06-28T13:44:58Z",
+    "commit": "de507f2",
     "phase": "fix",
     "duration_minutes": 0
   },
   "files": {
     "STATUS.md": {
-      "checksum": "sha256:e809ea99ac1e836511c0307a4fc46af28fc4725688a727312c43f6a77283822d",
-      "updated": "2026-06-28T05:19:18Z",
-      "lines": 120,
+      "checksum": "sha256:a12d31700b7edd218c2f5281813bbdeadcfb4c8a872c3f860d0c476df62a18a0",
+      "updated": "2026-06-28T13:44:45Z",
+      "lines": 122,
       "summary": "﻿# aahp-orchestrator: Current State of the Nation"
     },
     "NEXT_ACTIONS.md": {
-      "checksum": "sha256:39bf386720ea848f757f612fb0c54a2b9748a8c045f67dcc39135227139023f1",
-      "updated": "2026-06-26T09:34:48Z",
+      "checksum": "sha256:2ef9090e94b9e0f7b84aaea8c67e6971c507b2ba1dac53e1ab659cd092b27287",
+      "updated": "2026-06-28T10:10:31Z",
       "lines": 161,
       "summary": "(no summary available)"
     },
@@ -53,10 +53,12 @@
       "summary": "﻿# aahp-orchestrator: Autonomous Multi-Agent Workflow"
     }
   },
-  "quick_context": "Removed the VS Code Marketplace badge and install/publish sections (extension will not be published); closed issue #6.",
+  "quick_context": "﻿# aahp-orchestrator: Current State of the Nation (no summary available) ",
   "token_budget": {
     "manifest_only": 85,
-    "manifest_plus_core": 3311,
-    "full_read": 9082
+    "manifest_plus_core": 3380,
+    "full_read": 9151
   }
+  ,"next_task_id": "5"
+  ,"tasks": {"T-001":{"title":"[T-021] Create project-specific CLAUDE.md [low]","status":"ready","priority":"low","depends_on":[],"created":"2026-06-28T10:10:30.887Z","notes":"**AAHP Task:** `T-021`  \n**Status:** ready  \n**Priority:** low  \n\n\n\n\n---\n*Auto-created from AAHP manifest · project: aahp-orchestrator*","github_issue":48,"github_repo":"homeofe/aahp-orchestrator"},"T-002":{"title":"[T-020] Atomic file writes for manifest and session data [low]","status":"ready","priority":"low","depends_on":[],"created":"2026-06-28T10:10:30.887Z","notes":"**AAHP Task:** `T-020`  \n**Status:** ready  \n**Priority:** low  \n\n\n\n\n---\n*Auto-created from AAHP manifest · project: aahp-orchestrator*","github_issue":47,"github_repo":"homeofe/aahp-orchestrator"},"T-003":{"title":"[T-019] Unit tests for commands module [medium]","status":"ready","priority":"medium","depends_on":[],"created":"2026-06-28T10:10:30.887Z","notes":"**AAHP Task:** `T-019`  \n**Status:** ready  \n**Priority:** medium  \n\n\n\n\n---\n*Auto-created from AAHP manifest · project: aahp-orchestrator*","github_issue":46,"github_repo":"homeofe/aahp-orchestrator"},"T-004":{"title":"[T-018] Unit tests for sidebar webview provider [medium]","status":"ready","priority":"medium","depends_on":[],"created":"2026-06-28T10:10:30.887Z","notes":"**AAHP Task:** `T-018`  \n**Status:** ready  \n**Priority:** medium  \n\n\n\n\n---\n*Auto-created from AAHP manifest · project: aahp-orchestrator*","github_issue":45,"github_repo":"homeofe/aahp-orchestrator"}}
 }

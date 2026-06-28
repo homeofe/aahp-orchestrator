@@ -3,8 +3,54 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
 import * as crypto from 'crypto'
-import { execSync, spawnSync } from 'child_process'
+import { execFileSync, spawnSync } from 'child_process'
 import { atomicWriteJsonSync } from './atomic-write'
+
+// ── Security helpers ──────────────────────────────────────────────────────────
+
+/**
+ * Validate a GitHub repo slug of the form "owner/repo".
+ * Rejects slugs containing shell metacharacters, leading hyphens, or path
+ * traversal sequences. Only alphanumeric characters, hyphens, underscores,
+ * dots, and exactly one forward slash (separating owner from repo name) are
+ * allowed.
+ *
+ * Returns the slug unchanged if valid, or null if it fails validation.
+ */
+export function validateGitHubRepo(slug: string): string | null {
+  if (typeof slug !== 'string') return null
+  // Must be "owner/repo" with no shell metacharacters or traversal
+  if (!/^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/.test(slug)) return null
+  // Block leading hyphens in either component (flag injection)
+  const [owner, repo] = slug.split('/')
+  if (owner!.startsWith('-') || repo!.startsWith('-')) return null
+  // Block path traversal sequences
+  if (slug.includes('..')) return null
+  return slug
+}
+
+/**
+ * Validate a GitHub label name.
+ * Only allows characters that are safe in gh CLI --label values when passed as
+ * a shell-free argv element: printable ASCII excluding shell metacharacters
+ * and double-quotes. Max 50 characters.
+ */
+export function validateLabelName(name: string): string | null {
+  if (typeof name !== 'string') return null
+  if (name.length === 0 || name.length > 50) return null
+  // Reject anything that could interfere with the argument list
+  if (/["\\$`!|;&<>(){}*?#~]/.test(name)) return null
+  return name
+}
+
+/**
+ * Validate a six-digit hex color string for GitHub labels.
+ */
+function validateLabelColor(color: string): string | null {
+  if (typeof color !== 'string') return null
+  if (!/^[0-9a-fA-F]{6}$/.test(color)) return null
+  return color
+}
 
 // ── GitHub issue sync ─────────────────────────────────────────────────────────
 
@@ -19,10 +65,11 @@ interface GitHubIssue {
 
 function detectGitHubRepo(repoPath: string): string | null {
   try {
-    const url = execSync('git remote get-url origin', { cwd: repoPath, stdio: ['pipe', 'pipe', 'pipe'] })
+    const url = execFileSync('git', ['remote', 'get-url', 'origin'], { cwd: repoPath, stdio: ['pipe', 'pipe', 'pipe'] })
       .toString().trim()
     const match = url.match(/github\.com[/:]([^/]+\/[^/]+?)(?:\.git)?$/)
-    return match ? (match[1] ?? null) : null
+    if (!match?.[1]) return null
+    return validateGitHubRepo(match[1])
   } catch { return null }
 }
 
@@ -94,12 +141,18 @@ function fetchAndSyncGitHubIssues(
   const repo = detectGitHubRepo(repoPath)
   if (!repo) return manifest
 
+  const safeRepo = validateGitHubRepo(repo)
+  if (!safeRepo) return manifest
+
   let issues: GitHubIssue[]
   try {
-    const output = execSync(
-      `gh issue list --repo ${repo} --state all --json number,title,body,labels,state,stateReason --limit 100`,
-      { cwd: repoPath, stdio: ['pipe', 'pipe', 'pipe'], timeout: 15000 }
-    ).toString()
+    const output = execFileSync('gh', [
+      'issue', 'list',
+      '--repo', safeRepo,
+      '--state', 'all',
+      '--json', 'number,title,body,labels,state,stateReason',
+      '--limit', '100',
+    ], { cwd: repoPath, stdio: ['pipe', 'pipe', 'pipe'], timeout: 15000 }).toString()
     issues = (JSON.parse(output) as GitHubIssue[]).map(i => ({ ...i, state: i.state.toLowerCase() as 'open' | 'closed' }))
   } catch { return manifest }
 
@@ -250,8 +303,12 @@ const STATUS_LABELS: Record<string, { name: string; color: string }> = {
 }
 
 function ensureLabel(repo: string, name: string, color: string, cwd: string): void {
+  const safeRepo = validateGitHubRepo(repo)
+  const safeName = validateLabelName(name)
+  const safeColor = validateLabelColor(color)
+  if (!safeRepo || !safeName || !safeColor) return
   try {
-    execSync(`gh label create "${name}" --color "${color}" --force --repo ${repo}`,
+    execFileSync('gh', ['label', 'create', safeName, '--color', safeColor, '--force', '--repo', safeRepo],
       { cwd, stdio: ['pipe', 'pipe', 'pipe'], timeout: 10000 })
   } catch { /* best-effort */ }
 }
