@@ -108,7 +108,7 @@
 
 ## Pending
 
-### T-003: Publish to VS Code Marketplace [medium] (issue #6)
+### T-003: Publish to VS Code Marketplace [medium] (issue #46)
 - **GitHub:** [homeofe/aahp-orchestrator#6](https://github.com/homeofe/aahp-orchestrator/issues/6)
 - **Blocked on:** VSCE_PAT secret from project owner. Extension is packaged and ready (v0.3.0.vsix). Run `npm run publish` or push a `v0.3.0` tag once PAT is configured.
 

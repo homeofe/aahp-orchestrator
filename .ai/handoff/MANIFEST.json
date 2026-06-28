@@ -3,9 +3,9 @@
   "project": "aahp-orchestrator",
   "last_session": {
     "agent": "claude-opus-4-8",
-    "session_id": "cli-1782654297",
-    "timestamp": "2026-06-28T13:44:58Z",
-    "commit": "de507f2",
+    "session_id": "cli-1782654657",
+    "timestamp": "2026-06-28T13:51:01Z",
+    "commit": "25502cb",
     "phase": "fix",
     "duration_minutes": 0
   },
@@ -59,6 +59,4 @@
     "manifest_plus_core": 3380,
     "full_read": 9151
   }
-  ,"next_task_id": "5"
-  ,"tasks": {"T-001":{"title":"[T-021] Create project-specific CLAUDE.md [low]","status":"ready","priority":"low","depends_on":[],"created":"2026-06-28T10:10:30.887Z","notes":"**AAHP Task:** `T-021`  \n**Status:** ready  \n**Priority:** low  \n\n\n\n\n---\n*Auto-created from AAHP manifest · project: aahp-orchestrator*","github_issue":48,"github_repo":"homeofe/aahp-orchestrator"},"T-002":{"title":"[T-020] Atomic file writes for manifest and session data [low]","status":"ready","priority":"low","depends_on":[],"created":"2026-06-28T10:10:30.887Z","notes":"**AAHP Task:** `T-020`  \n**Status:** ready  \n**Priority:** low  \n\n\n\n\n---\n*Auto-created from AAHP manifest · project: aahp-orchestrator*","github_issue":47,"github_repo":"homeofe/aahp-orchestrator"},"T-003":{"title":"[T-019] Unit tests for commands module [medium]","status":"ready","priority":"medium","depends_on":[],"created":"2026-06-28T10:10:30.887Z","notes":"**AAHP Task:** `T-019`  \n**Status:** ready  \n**Priority:** medium  \n\n\n\n\n---\n*Auto-created from AAHP manifest · project: aahp-orchestrator*","github_issue":46,"github_repo":"homeofe/aahp-orchestrator"},"T-004":{"title":"[T-018] Unit tests for sidebar webview provider [medium]","status":"ready","priority":"medium","depends_on":[],"created":"2026-06-28T10:10:30.887Z","notes":"**AAHP Task:** `T-018`  \n**Status:** ready  \n**Priority:** medium  \n\n\n\n\n---\n*Auto-created from AAHP manifest · project: aahp-orchestrator*","github_issue":45,"github_repo":"homeofe/aahp-orchestrator"}}
 }
