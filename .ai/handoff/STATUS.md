@@ -1,6 +1,6 @@
 ﻿# aahp-orchestrator: Current State of the Nation
 
-> Last updated: 2026-06-26 by cli-tool
+> Last updated: 2026-06-28 by claude-opus-4-8
 > Version: 0.3.0
 >
 > **Rule:** This file is rewritten (not appended) at the end of every session.
@@ -116,3 +116,5 @@ _AAHP verify gate: v3.0.2 synced 2026-06-20._
 > 2026-06-27 ci: re-pin supply-chain-guard to v5.2.37 (be1d718b17cc38e4bce7fa48579b7112e557943b); enable Dependabot github-actions weekly updates.
 
 > 2026-06-27 docs(readme): add CI, AAHP Verify, and Security workflow status badges to README badge block (matches canonical homeofe/AAHP style).
+
+> 2026-06-28 docs(readme): remove the VS Code Marketplace badge and the install/publish-from-Marketplace sections; this extension will not be published to the Marketplace. Closed issue #6 (T-003 Publish to VS Code Marketplace).

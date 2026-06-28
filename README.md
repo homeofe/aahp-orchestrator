@@ -5,7 +5,6 @@
 [![CI](https://github.com/homeofe/aahp-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/homeofe/aahp-orchestrator/actions/workflows/ci.yml)
 [![AAHP Verify](https://github.com/homeofe/aahp-orchestrator/actions/workflows/aahp-verify.yml/badge.svg)](https://github.com/homeofe/aahp-orchestrator/actions/workflows/aahp-verify.yml)
 [![Security](https://github.com/homeofe/aahp-orchestrator/actions/workflows/codeql.yml/badge.svg)](https://github.com/homeofe/aahp-orchestrator/actions/workflows/codeql.yml)
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/elvatis.aahp-orchestrator?label=Marketplace)](https://marketplace.visualstudio.com/items?itemName=elvatis.aahp-orchestrator)
 [![VS Code](https://img.shields.io/badge/VS%20Code-%5E1.116-blue)](https://code.visualstudio.com/)
 [![AAHP v3](https://img.shields.io/badge/AAHP-v3-green)](https://github.com/homeofe/AAHP)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -185,19 +184,7 @@ A dedicated tree view showing all non-done tasks across all repos, grouped by pr
 
 ## Installation
 
-### From the VS Code Marketplace
-
-1. Open VS Code
-2. Press `Ctrl+Shift+X` (Extensions sidebar)
-3. Search for **AAHP Orchestrator**
-4. Click **Install**
-
-Or install from the command line:
-```bash
-code --install-extension elvatis.aahp-orchestrator
-```
-
-### From .vsix (manual)
+### From .vsix
 
 Download the latest `.vsix` from [GitHub Releases](https://github.com/homeofe/aahp-orchestrator/releases), then:
 ```bash
@@ -231,18 +218,6 @@ This extension reads the following files from `.ai/handoff/`:
 | `CONVENTIONS.md` | Code style, commit format, tooling |
 | `TRUST.md` | What's verified vs assumed |
 | `WORKFLOW.md` | Agent pipeline definition |
-
----
-
-## Publishing
-
-To publish a new version to the VS Code Marketplace:
-
-1. Bump the version in `package.json`
-2. Update `CHANGELOG.md`
-3. Run `npm run publish` (requires `VSCE_PAT` environment variable)
-
-Or via CI: push a `v*` tag to trigger the release workflow.
 
 ---
 

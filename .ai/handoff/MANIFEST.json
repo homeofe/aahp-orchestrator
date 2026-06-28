@@ -1,62 +1,62 @@
 {
   "aahp_version": "3.0",
-  "project": "repo",
+  "project": "aahp-orchestrator",
   "last_session": {
     "agent": "claude-opus-4-8",
-    "session_id": "cli-1782541099",
-    "timestamp": "2026-06-27T06:18:21Z",
-    "commit": "4b45c75",
-    "phase": "implementation",
+    "session_id": "cli-1782623979",
+    "timestamp": "2026-06-28T05:19:39Z",
+    "commit": "aa068ce",
+    "phase": "fix",
     "duration_minutes": 0
   },
   "files": {
     "STATUS.md": {
-      "checksum": "sha256:94a5cbeec08245a4aef260382d6d5315469e736af4fa30d9818de410cf5d8f6a",
-      "updated": "2026-06-27T06:17:48Z",
-      "lines": 118,
+      "checksum": "sha256:e809ea99ac1e836511c0307a4fc46af28fc4725688a727312c43f6a77283822d",
+      "updated": "2026-06-28T05:19:18Z",
+      "lines": 120,
       "summary": "﻿# aahp-orchestrator: Current State of the Nation"
     },
     "NEXT_ACTIONS.md": {
       "checksum": "sha256:39bf386720ea848f757f612fb0c54a2b9748a8c045f67dcc39135227139023f1",
-      "updated": "2026-06-27T06:16:31Z",
+      "updated": "2026-06-26T09:34:48Z",
       "lines": 161,
       "summary": "(no summary available)"
     },
     "LOG.md": {
       "checksum": "sha256:1866198867e29686c18b1b3959cf2bdc05f56256d1d76ac74bd145630098f539",
-      "updated": "2026-06-27T06:16:31Z",
+      "updated": "2026-04-14T10:40:13Z",
       "lines": 143,
       "summary": "(no summary available)"
     },
     "DASHBOARD.md": {
       "checksum": "sha256:98e90f05c1270e5e20668bbd43cb1a0a0913cd93b1069f110810604e6a0fc535",
-      "updated": "2026-06-27T06:16:31Z",
+      "updated": "2026-04-14T10:40:13Z",
       "lines": 131,
       "summary": "(no summary available)"
     },
     "TRUST.md": {
       "checksum": "sha256:ad6a227d8417c6d4567b03306670f93893670774acc2f47353ce3510bee08b06",
-      "updated": "2026-06-27T06:16:31Z",
+      "updated": "2026-04-14T10:40:13Z",
       "lines": 112,
       "summary": "(no summary available)"
     },
     "CONVENTIONS.md": {
       "checksum": "sha256:c623185d1113acbc3c480d956880b2e539e5e82131e67e6405c956bb56ef4638",
-      "updated": "2026-06-27T06:16:31Z",
+      "updated": "2026-04-14T10:40:13Z",
       "lines": 116,
       "summary": "(no summary available)"
     },
     "WORKFLOW.md": {
       "checksum": "sha256:308f72affaf98d060daf61aa18465a196d11e348e2f027ee3dc2965b8776dd99",
-      "updated": "2026-06-27T06:16:31Z",
+      "updated": "2026-04-14T10:40:13Z",
       "lines": 151,
       "summary": "﻿# aahp-orchestrator: Autonomous Multi-Agent Workflow"
     }
   },
-  "quick_context": "﻿# aahp-orchestrator: Current State of the Nation (no summary available) ",
+  "quick_context": "Removed the VS Code Marketplace badge and install/publish sections (extension will not be published); closed issue #6.",
   "token_budget": {
     "manifest_only": 85,
-    "manifest_plus_core": 3271,
-    "full_read": 9042
+    "manifest_plus_core": 3311,
+    "full_read": 9082
   }
 }
