@@ -419,7 +419,7 @@
     "mocha": "^11.3.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.1",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.9"
   },
   "overrides": {
     "serialize-javascript": "^7.0.5",
