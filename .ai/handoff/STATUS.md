@@ -120,3 +120,5 @@ _AAHP verify gate: v3.0.2 synced 2026-06-20._
 > 2026-06-28 docs(readme): remove the VS Code Marketplace badge and the install/publish-from-Marketplace sections; this extension will not be published to the Marketplace. Closed issue #6 (T-003 Publish to VS Code Marketplace).
 
 > 2026-06-28 security: fix 3 command-injection findings in aahp-reader.ts. Replaced execSync with shell-interpolated repo slug (gh issue list, gh label create) with execFileSync + argv array. Added validateGitHubRepo and validateLabelName allowlist validators that reject shell metacharacters, leading hyphens, and path traversal sequences. 28 regression tests added covering both validators. All 366 tests pass.
+
+> 2026-06-30 verify: added reviewed expiring PII allowlist, rolled out from AAHP v3.2.0.

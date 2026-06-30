@@ -3,17 +3,17 @@
   "project": "aahp-orchestrator",
   "last_session": {
     "agent": "claude-opus-4-8",
-    "session_id": "cli-1782654657",
-    "timestamp": "2026-06-28T13:51:01Z",
-    "commit": "25502cb",
+    "session_id": "cli-1782812349",
+    "timestamp": "2026-06-30T09:39:09Z",
+    "commit": "4979588",
     "phase": "fix",
     "duration_minutes": 0
   },
   "files": {
     "STATUS.md": {
-      "checksum": "sha256:a12d31700b7edd218c2f5281813bbdeadcfb4c8a872c3f860d0c476df62a18a0",
-      "updated": "2026-06-28T13:44:45Z",
-      "lines": 122,
+      "checksum": "sha256:36e81b53b9feae528235552172eab88d68626b6b3702850264354743a4a8046b",
+      "updated": "2026-06-30T08:36:06Z",
+      "lines": 124,
       "summary": "﻿# aahp-orchestrator: Current State of the Nation"
     },
     "NEXT_ACTIONS.md": {
@@ -51,12 +51,18 @@
       "updated": "2026-04-14T10:40:13Z",
       "lines": 151,
       "summary": "﻿# aahp-orchestrator: Autonomous Multi-Agent Workflow"
+    },
+    "pii-allowlist.json": {
+      "checksum": "sha256:7c1051f6e2bc3943b7c1dbe4da229694455681b8875a346c99279e555edb733f",
+      "updated": "2026-06-30T09:39:07Z",
+      "lines": 4,
+      "summary": "{"
     }
   },
   "quick_context": "﻿# aahp-orchestrator: Current State of the Nation (no summary available) ",
   "token_budget": {
     "manifest_only": 85,
-    "manifest_plus_core": 3380,
-    "full_read": 9151
+    "manifest_plus_core": 3397,
+    "full_read": 9176
   }
 }
