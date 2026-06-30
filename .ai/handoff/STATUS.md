@@ -122,3 +122,5 @@ _AAHP verify gate: v3.0.2 synced 2026-06-20._
 > 2026-06-28 security: fix 3 command-injection findings in aahp-reader.ts. Replaced execSync with shell-interpolated repo slug (gh issue list, gh label create) with execFileSync + argv array. Added validateGitHubRepo and validateLabelName allowlist validators that reject shell metacharacters, leading hyphens, and path traversal sequences. 28 regression tests added covering both validators. All 366 tests pass.
 
 > 2026-06-30 verify: added reviewed expiring PII allowlist, rolled out from AAHP v3.2.0.
+
+> 2026-06-30 ci: exempt Dependabot from the aahp-verify handoff gate (keep supply-chain-guard/codeql/build).
