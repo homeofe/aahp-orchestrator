@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to the **AAHP Orchestrator** VS Code extension will be documented in this file.
 
@@ -6,8 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-
-### Planned
 
 - Unit tests for chat-participant and context-injector (T-009)
 - Integration tests with VS Code extension host (T-010)
@@ -166,7 +164,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Removed em dashes from all source files and documentation (style convention)
 
-[unreleased]: https://github.com/homeofe/aahp-orchestrator/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/homeofe/aahp-orchestrator/compare/v0.3.7...HEAD
+[0.3.7]: https://github.com/homeofe/aahp-orchestrator/compare/v0.3.6...v0.3.7
+[0.3.6]: https://github.com/homeofe/aahp-orchestrator/compare/v0.3.5...v0.3.6
+[0.3.5]: https://github.com/homeofe/aahp-orchestrator/compare/v0.3.4...v0.3.5
+[0.3.4]: https://github.com/homeofe/aahp-orchestrator/compare/v0.3.3...v0.3.4
+[0.3.3]: https://github.com/homeofe/aahp-orchestrator/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/homeofe/aahp-orchestrator/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/homeofe/aahp-orchestrator/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/homeofe/aahp-orchestrator/compare/v0.2.0...v0.3.0
