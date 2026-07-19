@@ -18,10 +18,8 @@
 # (github.actor) and the resulting push to main (head_commit.author). Security and
 # build remain gated by the supply-chain-guard and CodeQL checks, which still run.
 #
-# NOTE: GitHub Actions is currently OFF org-wide (cost sweep). This workflow is
-# committed anyway so it activates automatically when Actions is re-enabled.
-# Once Actions is on, mark this job as a REQUIRED status check in branch
-# protection so the gate cannot be bypassed by skipping local hooks.
+# NOTE: Mark this job as a REQUIRED status check in branch protection so the
+# handoff gate cannot be bypassed by skipping local hooks.
 
 name: AAHP Verify
 
