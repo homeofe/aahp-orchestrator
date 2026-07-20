@@ -419,7 +419,7 @@
     "eslint": "^10.3.0",
     "mocha": "^11.7.6",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.62.1",
+    "typescript-eslint": "^8.64.0",
     "vitest": "^4.1.9"
   },
   "overrides": {
