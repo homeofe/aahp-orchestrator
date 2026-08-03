@@ -2,23 +2,23 @@
   "aahp_version": "3.0",
   "project": "aahp-orchestrator",
   "last_session": {
-    "agent": "claude-fable-5",
-    "session_id": "cli-1783072038",
-    "timestamp": "2026-07-03T09:47:18Z",
-    "commit": "b1b9465",
-    "phase": "fix",
+    "agent": "cli-tool",
+    "session_id": "cli-1785777746",
+    "timestamp": "2026-08-03T17:22:27Z",
+    "commit": "c8c8bc4",
+    "phase": "idle",
     "duration_minutes": 0
   },
   "files": {
     "STATUS.md": {
-      "checksum": "sha256:e223768079d279b7d0f21574b48a10889b7e0b3a25377f6bb10347100eb7ab88",
-      "updated": "2026-07-03T09:47:18Z",
-      "lines": 127,
-      "summary": "﻿# aahp-orchestrator: Current State of the Nation"
+      "checksum": "sha256:6e48648f6dd4b18f2522370d9cf2d527853272b01be510a6f84092befac1e3cc",
+      "updated": "2026-08-03T17:20:25Z",
+      "lines": 131,
+      "summary": "findIssueNumberByTaskId: no false first-hit; title fallback."
     },
     "NEXT_ACTIONS.md": {
-      "checksum": "sha256:2ef9090e94b9e0f7b84aaea8c67e6971c507b2ba1dac53e1ab659cd092b27287",
-      "updated": "2026-06-28T10:10:31Z",
+      "checksum": "sha256:09759d9646f36e1bc7beecc8d5e58bdc3c5705f414f51a137b4ad17f51b54edb",
+      "updated": "2026-07-03T10:12:08Z",
       "lines": 161,
       "summary": "(no summary available)"
     },
@@ -59,10 +59,12 @@
       "summary": "{"
     }
   },
-  "quick_context": "﻿# aahp-orchestrator: Current State of the Nation (no summary available) ",
+  "quick_context": "findIssueNumberByTaskId: no false first-hit; title fallback. (no summary available) ",
   "token_budget": {
     "manifest_only": 85,
-    "manifest_plus_core": 3466,
-    "full_read": 9245
+    "manifest_plus_core": 3485,
+    "full_read": 9264
   }
+  ,"next_task_id": 6
+  ,"tasks": {"T-001":{"title":"ops: Publish aahp-orchestrator to the VS Code Marketplace","status":"ready","priority":"medium","depends_on":[],"created":"2026-07-03T10:12:08.279Z","notes":"## Summary\n\nThe VS Code Marketplace publishing guide exists at `docs/MARKETPLACE-PUBLISH.md` and the CHANGELOG describes Marketplace support gated on a `VSCE_PAT` secret (T-008). The actual publish has never happened; it is blocked on the publisher account / PAT.\n\n## Acceptance criteria\n\n- [ ] Azure DevOps publisher account created for the Elvatis publisher id (by Emre)\n- [ ] `VSCE_PAT` secret set in the repo / release workflow (by Emre, not the agent)\n- [ ] `vsce publish` runs green and the ext","github_issue":62,"github_repo":"homeofe/aahp-orchestrator"},"T-002":{"title":"[T-021] Create project-specific CLAUDE.md [low]","status":"ready","priority":"low","depends_on":[],"created":"2026-07-03T10:12:08.280Z","notes":"**AAHP Task:** `T-021`  \n**Status:** ready  \n**Priority:** low  \n\n\n\n\n---\n*Auto-created from AAHP manifest · project: aahp-orchestrator*","github_issue":48,"github_repo":"homeofe/aahp-orchestrator"},"T-003":{"title":"[T-020] Atomic file writes for manifest and session data [low]","status":"ready","priority":"low","depends_on":[],"created":"2026-07-03T10:12:08.280Z","notes":"**AAHP Task:** `T-020`  \n**Status:** ready  \n**Priority:** low  \n\n\n\n\n---\n*Auto-created from AAHP manifest · project: aahp-orchestrator*","github_issue":47,"github_repo":"homeofe/aahp-orchestrator"},"T-004":{"title":"[T-019] Unit tests for commands module [medium]","status":"ready","priority":"medium","depends_on":[],"created":"2026-07-03T10:12:08.280Z","notes":"**AAHP Task:** `T-019`  \n**Status:** ready  \n**Priority:** medium  \n\n\n\n\n---\n*Auto-created from AAHP manifest · project: aahp-orchestrator*","github_issue":46,"github_repo":"homeofe/aahp-orchestrator"},"T-005":{"title":"[T-018] Unit tests for sidebar webview provider [medium]","status":"ready","priority":"medium","depends_on":[],"created":"2026-07-03T10:12:08.281Z","notes":"**AAHP Task:** `T-018`  \n**Status:** ready  \n**Priority:** medium  \n\n\n\n\n---\n*Auto-created from AAHP manifest · project: aahp-orchestrator*","github_issue":45,"github_repo":"homeofe/aahp-orchestrator"}}
 }

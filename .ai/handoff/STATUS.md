@@ -1,4 +1,8 @@
-﻿# aahp-orchestrator: Current State of the Nation
+## 2026-08-03 -  do not mint duplicate GH issues
+
+findIssueNumberByTaskId: no false first-hit; title fallback.
+
+# aahp-orchestrator: Current State of the Nation
 
 > Last updated: 2026-06-28 by claude-opus-4-8
 > Version: 0.3.0
