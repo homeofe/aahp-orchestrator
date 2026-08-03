@@ -77,7 +77,21 @@ function extractIssueNumberFromText(text: string): number | undefined {
   return Number.isFinite(num) ? num : undefined
 }
 
-function findIssueNumberByTaskId(repoPath: string, repoSlug: string, taskId: string): number | undefined {
+/**
+ * Find an existing GitHub issue for an AAHP task before creating a new one.
+ *
+ * Never return an unrelated search hit when the T-id is absent
+ * from every title (the old fallback returned the first `gh` result and minted
+ * a second issue under a fresh T-number). Prefer exact T-id title matches; also
+ * accept titles that reference the task id after a renumber (e.g. "T-806" still
+ * in the title when the manifest task id moved).
+ */
+function findIssueNumberByTaskId(
+  repoPath: string,
+  repoSlug: string,
+  taskId: string,
+  taskTitle?: string,
+): number | undefined {
   try {
     const output = execFileSync(
       'gh',
@@ -99,14 +113,66 @@ function findIssueNumberByTaskId(repoPath: string, repoSlug: string, taskId: str
     )
 
     const parsed = JSON.parse(output) as Array<{ number?: number; title?: string }>
+    const idRe = new RegExp(`\\b${taskId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+
+    // Prefer issues that still carry this exact T-id in the title.
     for (const issue of parsed) {
       if (!issue.number || !issue.title) continue
-      if (new RegExp(`\\b${taskId}\\b`, 'i').test(issue.title)) {
+      if (idRe.test(issue.title)) {
         return issue.number
       }
     }
 
-    return parsed.find(i => typeof i.number === 'number')?.number
+    // Second pass: if the task title is known, match by normalized title so a
+    // re-numbered task (T-3438 that used to be T-806) links to the original
+    // issue instead of creating a stub.
+    if (taskTitle && taskTitle.trim()) {
+      const needle = taskTitle
+        .toLowerCase()
+        .replace(/^\[t-\d+\]\s*/i, '')
+        .replace(/\(issue #\d+\)/gi, '')
+        .replace(/[^a-z0-9 ]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+      if (needle.length >= 8) {
+        const byTitle = execFileSync(
+          'gh',
+          [
+            'issue',
+            'list',
+            '--repo', repoSlug,
+            '--state', 'all',
+            '--search', `${JSON.stringify(taskTitle).slice(1, -1)} in:title`,
+            '--json', 'number,title',
+            '--limit', '20',
+          ],
+          {
+            cwd: repoPath,
+            encoding: 'utf8',
+            timeout: 20000,
+            stdio: ['ignore', 'pipe', 'pipe'],
+          },
+        )
+        const titled = JSON.parse(byTitle) as Array<{ number?: number; title?: string }>
+        for (const issue of titled) {
+          if (!issue.number || !issue.title) continue
+          const hay = issue.title
+            .toLowerCase()
+            .replace(/^\[t-\d+\]\s*/i, '')
+            .replace(/\(issue #\d+\)/gi, '')
+            .replace(/[^a-z0-9 ]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+          if (hay === needle || hay.includes(needle) || needle.includes(hay)) {
+            return issue.number
+          }
+        }
+      }
+    }
+
+    // No confident match: return undefined so the caller creates at most one
+    // new issue rather than attaching to an unrelated search hit ().
+    return undefined
   } catch {
     return undefined
   }
@@ -398,7 +464,12 @@ export function registerCommands(
               continue
             }
 
-            const existingIssueNumber = findIssueNumberByTaskId(targetPath, remote.repoSlug, taskId)
+            const existingIssueNumber = findIssueNumberByTaskId(
+              targetPath,
+              remote.repoSlug,
+              taskId,
+              task.title,
+            )
             if (existingIssueNumber) {
               task.github_issue = existingIssueNumber
               task.github_repo = remote.repoSlug
@@ -441,7 +512,7 @@ export function registerCommands(
               )
 
               const createdIssueNumber = extractIssueNumberFromText(output)
-                ?? findIssueNumberByTaskId(targetPath, remote.repoSlug, taskId)
+                ?? findIssueNumberByTaskId(targetPath, remote.repoSlug, taskId, task.title)
 
               if (createdIssueNumber) {
                 task.github_issue = createdIssueNumber
