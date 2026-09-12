@@ -109,15 +109,32 @@ function extractTaskIdFromTitle(title: string): string | undefined {
 }
 
 /** Normalize a task/issue title for fuzzy matching: lowercase, strip T-NNN prefix,
- *  strip "(issue #N)" annotations, collapse non-alphanumeric runs to spaces. */
-function normalizeTitle(title: string): string {
+ *  strip "(issue #N)" annotations, strip bare "#N" issue-reference tokens (these
+ *  renumber across repos and otherwise survive into the word set and depress
+ *  similarity between titles that are otherwise identical), collapse
+ *  non-alphanumeric runs to spaces. */
+export function normalizeTitle(title: string): string {
   return title
     .toLowerCase()
     .replace(/^\[T-\d+\]\s*/i, '')
     .replace(/\(issue #\d+\)/gi, '')
+    .replace(/#\d+\b/g, '')
     .replace(/[^a-z0-9 ]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+/** Jaccard word-overlap similarity between two task titles (after normalization).
+ *  Returns 0..1; the pre-flight dedup check in createMissingGitHubIssues uses
+ *  0.85 as its threshold, matching the sibling homeofe/aahp-runner scanner. */
+export function titleSimilarity(a: string, b: string): number {
+  const words = (s: string) => new Set(normalizeTitle(s).split(' ').filter(w => w.length >= 3))
+  const wa = words(a)
+  const wb = words(b)
+  if (wa.size === 0 || wb.size === 0) return 0
+  const intersection = [...wa].filter(w => wb.has(w)).length
+  const union = new Set([...wa, ...wb]).size
+  return intersection / union
 }
 
 /** Safely extract a numeric issue number from a github_issue value that may be
@@ -313,8 +330,16 @@ function ensureLabel(repo: string, name: string, color: string, cwd: string): vo
   } catch { /* best-effort */ }
 }
 
-/** Create GitHub issues for manifest tasks that are missing one, then link back. */
-function createMissingGitHubIssues(
+const PREFLIGHT_THRESHOLD = 0.85
+
+/** Create GitHub issues for manifest tasks that are missing one, then link back.
+ *  Before creating, checks for an existing issue (open OR closed) that already
+ *  covers the task, by T-NNN task ID or by fuzzy title match. A closed match is
+ *  reopened (with an explanatory comment) rather than silently linked or
+ *  duplicated: querying open issues only meant a task whose matching issue had
+ *  since been closed was invisible to this check, and a fresh duplicate got
+ *  filed under a new T-number on the next sync. Exported for unit testing. */
+export function createMissingGitHubIssues(
   repoPath: string,
   handoffDir: string,
   manifest: AahpManifest
@@ -336,6 +361,24 @@ function createMissingGitHubIssues(
     if (lbl) ensureLabel(repo, lbl.name, lbl.color, repoPath)
   }
 
+  // Pre-flight: fetch OPEN AND CLOSED issues to avoid creating duplicates on
+  // retried/crashed runs, and to catch a task whose matching issue has since
+  // been closed (which a "state: open" query would miss entirely).
+  let existingIssues: GitHubIssue[] = []
+  try {
+    const out = execFileSync('gh', [
+      'issue', 'list',
+      '--repo', repo,
+      '--state', 'all',
+      '--json', 'number,title,state',
+      '--limit', '200',
+    ], { cwd: repoPath, stdio: ['pipe', 'pipe', 'pipe'], timeout: 15000 }).toString()
+    existingIssues = (JSON.parse(out) as GitHubIssue[]).map(i => ({
+      ...i,
+      state: (i.state as string).toLowerCase() as 'open' | 'closed',
+    }))
+  } catch { /* gh unavailable - skip pre-flight, proceed with creation */ }
+
   let changed = false
   for (const [taskId, task] of toCreate) {
     // Reconcile priority: title may contain [high]/[medium]/[low] that overrides task.priority
@@ -344,6 +387,36 @@ function createMissingGitHubIssues(
       task.priority = titlePri
     }
     const title = `[${taskId}] ${task.title}`
+
+    // Pre-flight dedup: skip creation if an issue (open or closed) with the same
+    // task-ID or near-identical title already exists.
+    if (existingIssues.length > 0) {
+      const clash = existingIssues.find(i => {
+        const iTaskId = extractTaskIdFromTitle(i.title)
+        if (iTaskId && iTaskId === taskId) return true
+        return titleSimilarity(i.title, title) >= PREFLIGHT_THRESHOLD
+      })
+      if (clash) {
+        if (clash.state === 'closed') {
+          // A closed match is not the same as no match: silently stamping
+          // task.github_issue onto a dead issue number would either hide the
+          // task forever or (once it moves again) get a duplicate filed anyway.
+          // Reopen the existing issue instead of creating a second one.
+          try {
+            spawnSync('gh', [
+              'issue', 'reopen', String(clash.number),
+              '--repo', repo,
+              '--comment', `Reopened automatically: AAHP task \`${taskId}\` (status: ${task.status}) still references this work. If it is genuinely finished, close it again and clear the task's github_issue link.`,
+            ], { cwd: repoPath, timeout: 15000, encoding: 'utf8' })
+          } catch { /* best-effort */ }
+        }
+        task.github_issue = clash.number
+        task.github_repo = repo
+        changed = true
+        continue
+      }
+    }
+
     const labelArgs = [
       ...(PRIORITY_LABELS[task.priority] ? ['--label', PRIORITY_LABELS[task.priority]!.name] : []),
       ...(STATUS_LABELS[task.status]     ? ['--label', STATUS_LABELS[task.status]!.name]     : []),
