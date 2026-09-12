@@ -2,6 +2,32 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
+
+// ── Mock for child_process (createMissingGitHubIssues shells out to git/gh) ──
+// Must be declared before the '../aahp-reader' import below so the mock is in
+// place before aahp-reader.ts's own `import { execFileSync, spawnSync } from
+// 'child_process'` resolves.
+interface MockCall { cmd: string; args: string[] }
+let _execFileSyncMockImpl: ((cmd: string, args: string[]) => string) | null = null
+let _spawnSyncMockImpl: ((cmd: string, args: string[]) => { status: number; stdout: string; stderr: string }) | null = null
+let _spawnSyncCalls: MockCall[] = []
+
+vi.mock('child_process', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('child_process')>()
+  return {
+    ...actual,
+    execFileSync: (cmd: string, args: string[], opts?: unknown) => {
+      if (_execFileSyncMockImpl) return _execFileSyncMockImpl(cmd, args)
+      return actual.execFileSync(cmd, args, opts as never)
+    },
+    spawnSync: (cmd: string, args: string[], opts?: unknown) => {
+      _spawnSyncCalls.push({ cmd, args })
+      if (_spawnSyncMockImpl) return _spawnSyncMockImpl(cmd, args)
+      return actual.spawnSync(cmd, args, opts as never)
+    },
+  }
+})
+
 import {
   AahpManifest,
   AahpContext,
@@ -16,6 +42,9 @@ import {
   getWorkspaceRoot,
   validateGitHubRepo,
   validateLabelName,
+  normalizeTitle,
+  titleSimilarity,
+  createMissingGitHubIssues,
 } from '../aahp-reader'
 import { workspace } from 'vscode'
 
@@ -655,5 +684,142 @@ describe('validateLabelName', () => {
     expect(validateLabelName(null as any)).toBeNull()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(validateLabelName(undefined as any)).toBeNull()
+  })
+})
+
+// ── normalizeTitle / titleSimilarity (elvatis-security-platform#626 regression) ──
+// A bare "#NNN" issue-reference token used to survive normalization and get
+// counted as a word, which could depress Jaccard similarity below the 0.85
+// dedup threshold for two titles that are otherwise identical.
+
+describe('normalizeTitle', () => {
+  it('strips a bare "#NNN" token', () => {
+    expect(normalizeTitle('Fix login redirect bug #1010')).toBe('fix login redirect bug')
+  })
+
+  it('still strips the existing "(issue #N)" annotation', () => {
+    expect(normalizeTitle('Fix login redirect bug (issue #1010)')).toBe('fix login redirect bug')
+  })
+
+  it('still strips a leading [T-NNN] prefix', () => {
+    expect(normalizeTitle('[T-077] Fix login redirect bug')).toBe('fix login redirect bug')
+  })
+})
+
+describe('titleSimilarity', () => {
+  it('scores two titles as identical once a trailing "#NNN" is normalized away', () => {
+    // Before the #626 fix, "1010" survived normalization as its own word, so
+    // the two titles below scored 4/5 = 0.8, just under the 0.85 dedup
+    // threshold used by createMissingGitHubIssues's pre-flight check.
+    const similarity = titleSimilarity('Fix login redirect bug #1010', 'Fix login redirect bug')
+    expect(similarity).toBe(1)
+  })
+})
+
+// ── createMissingGitHubIssues (elvatis-security-platform#626 regression) ────────
+// This function previously had NO pre-flight at all: it went straight from the
+// task list to `gh issue create`, so it could not distinguish "no matching
+// issue exists" from "a matching issue exists but is closed" and would file a
+// fresh duplicate either way.
+
+describe('createMissingGitHubIssues', () => {
+  let tmpDir: string
+
+  function setupRepo(): { repoPath: string; handoffDir: string } {
+    const repoPath = path.join(tmpDir, 'repo')
+    const handoffDir = path.join(repoPath, '.ai', 'handoff')
+    fs.mkdirSync(handoffDir, { recursive: true })
+    return { repoPath, handoffDir }
+  }
+
+  function mockGh(existingIssues: Array<{ number: number; title: string; state: 'OPEN' | 'CLOSED' }>): void {
+    _execFileSyncMockImpl = (cmd, args) => {
+      if (cmd === 'git' && args[0] === 'remote') return 'https://github.com/homeofe/aahp-orchestrator.git\n'
+      if (cmd === 'gh' && args[0] === 'issue' && args[1] === 'list') return JSON.stringify(existingIssues)
+      if (cmd === 'gh' && args[0] === 'label') return ''
+      throw new Error(`unexpected execFileSync call in test: ${cmd} ${args.join(' ')}`)
+    }
+    _spawnSyncMockImpl = (_cmd, args) => {
+      if (args[0] === 'issue' && args[1] === 'reopen') return { status: 0, stdout: '', stderr: '' }
+      if (args[0] === 'issue' && args[1] === 'create') {
+        return { status: 0, stdout: 'https://github.com/homeofe/aahp-orchestrator/issues/999\n', stderr: '' }
+      }
+      return { status: 0, stdout: '', stderr: '' }
+    }
+  }
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aahp-missing-issues-'))
+  })
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+    _execFileSyncMockImpl = null
+    _spawnSyncMockImpl = null
+    _spawnSyncCalls = []
+  })
+
+  it('reopens a closed matching issue instead of filing a duplicate', () => {
+    const { repoPath, handoffDir } = setupRepo()
+    mockGh([{ number: 42, title: '[T-001] Fix flaky retry test', state: 'CLOSED' }])
+
+    const manifest = makeManifest({
+      tasks: { 'T-001': makeTask({ title: 'Fix flaky retry test', status: 'ready' }) },
+    })
+
+    const updated = createMissingGitHubIssues(repoPath, handoffDir, manifest)
+
+    expect(updated.tasks!['T-001']!.github_issue).toBe(42)
+    const reopenCalls = _spawnSyncCalls.filter(c => c.args[0] === 'issue' && c.args[1] === 'reopen')
+    const createCalls = _spawnSyncCalls.filter(c => c.args[0] === 'issue' && c.args[1] === 'create')
+    expect(reopenCalls).toHaveLength(1)
+    expect(reopenCalls[0]!.args).toContain('42')
+    expect(createCalls).toHaveLength(0)
+  })
+
+  it('still links to (and does not mutate) an open matching issue', () => {
+    const { repoPath, handoffDir } = setupRepo()
+    mockGh([{ number: 42, title: '[T-001] Fix flaky retry test', state: 'OPEN' }])
+
+    const manifest = makeManifest({
+      tasks: { 'T-001': makeTask({ title: 'Fix flaky retry test', status: 'ready' }) },
+    })
+
+    const updated = createMissingGitHubIssues(repoPath, handoffDir, manifest)
+
+    expect(updated.tasks!['T-001']!.github_issue).toBe(42)
+    expect(_spawnSyncCalls.filter(c => c.args[0] === 'issue' && (c.args[1] === 'reopen' || c.args[1] === 'create'))).toHaveLength(0)
+  })
+
+  it('matches an open issue via title fallback even with a stray "#NNN" reference, and does not create a duplicate', () => {
+    const { repoPath, handoffDir } = setupRepo()
+    // No T-077 tag in the existing issue's title, so this only matches through
+    // the title-similarity fallback, not the task-ID shortcut - which is
+    // exactly the path the #NNN-stripping fix in normalizeTitle affects.
+    mockGh([{ number: 555, title: 'Fix login redirect bug #1010', state: 'OPEN' }])
+
+    const manifest = makeManifest({
+      tasks: { 'T-077': makeTask({ title: 'Fix login redirect bug', status: 'ready' }) },
+    })
+
+    const updated = createMissingGitHubIssues(repoPath, handoffDir, manifest)
+
+    expect(updated.tasks!['T-077']!.github_issue).toBe(555)
+    expect(_spawnSyncCalls.filter(c => c.args[0] === 'issue' && c.args[1] === 'create')).toHaveLength(0)
+  })
+
+  it('creates a new issue when no open or closed match exists', () => {
+    const { repoPath, handoffDir } = setupRepo()
+    mockGh([])
+
+    const manifest = makeManifest({
+      tasks: { 'T-002': makeTask({ title: 'Totally unrelated task', status: 'ready' }) },
+    })
+
+    const updated = createMissingGitHubIssues(repoPath, handoffDir, manifest)
+
+    expect(updated.tasks!['T-002']!.github_issue).toBe(999)
+    const createCalls = _spawnSyncCalls.filter(c => c.args[0] === 'issue' && c.args[1] === 'create')
+    expect(createCalls).toHaveLength(1)
   })
 })
